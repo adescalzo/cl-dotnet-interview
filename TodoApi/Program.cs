@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TodoApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 builder
@@ -15,4 +16,6 @@ var app = builder.Build();
 
 app.UseAuthorization();
 app.MapControllers();
-app.Run();
+
+await app.RunAsync().ConfigureAwait(false);
+
