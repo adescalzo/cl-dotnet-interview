@@ -1,7 +1,7 @@
 using System.Reflection;
 using FluentValidation;
-using Wolverine;
 using TodoApi.Infrastructure.Mediator;
+using Wolverine;
 
 namespace TodoApi.Infrastructure.Configuration;
 
@@ -18,18 +18,24 @@ public static class WolverineExtensions
     /// <param name="services">Service collection</param>
     /// <param name="applicationAssembly">Assembly containing handlers (typically Application project)</param>
     /// <returns>Service collection for chaining</returns>
-    public static IServiceCollection AddWolverineMediator(this IServiceCollection services, Assembly applicationAssembly)
+    public static IServiceCollection AddWolverineMediator(
+        this IServiceCollection services,
+        Assembly applicationAssembly
+    )
     {
         services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
 
-        services.AddWolverine(ExtensionDiscovery.ManualOnly, opts =>
-        {
-            opts.Discovery.IncludeAssembly(applicationAssembly);
+        services.AddWolverine(
+            ExtensionDiscovery.ManualOnly,
+            opts =>
+            {
+                opts.Discovery.IncludeAssembly(applicationAssembly);
 
-            opts.Policies.AddMiddleware(typeof(ValidationMiddleware));
-            opts.Policies.AddMiddleware<LoggingMiddleware>();
-            opts.Policies.AddMiddleware<TransactionMiddleware>();
-        });
+                opts.Policies.AddMiddleware(typeof(ValidationMiddleware));
+                opts.Policies.AddMiddleware<LoggingMiddleware>();
+                opts.Policies.AddMiddleware<TransactionMiddleware>();
+            }
+        );
 
         return services;
     }

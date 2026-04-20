@@ -10,21 +10,27 @@ namespace TodoApi.Infrastructure.Configuration;
 /// </summary>
 public static class HealthCheckExtensions
 {
-    public static IEndpointRouteBuilder MapDetailedHealthChecks(this IEndpointRouteBuilder app, string path)
+    public static IEndpointRouteBuilder MapDetailedHealthChecks(
+        this IEndpointRouteBuilder app,
+        string path
+    )
     {
         ArgumentNullException.ThrowIfNull(app);
 
-        app.MapHealthChecks(path, new HealthCheckOptions
-        {
-            ResponseWriter = WriteDetailedHealthCheckResponse,
-            AllowCachingResponses = false,
-            ResultStatusCodes =
+        app.MapHealthChecks(
+            path,
+            new HealthCheckOptions
             {
-                [HealthStatus.Healthy] = StatusCodes.Status200OK,
-                [HealthStatus.Degraded] = StatusCodes.Status200OK,
-                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+                ResponseWriter = WriteDetailedHealthCheckResponse,
+                AllowCachingResponses = false,
+                ResultStatusCodes =
+                {
+                    [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                    [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                    [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+                },
             }
-        });
+        );
 
         return app;
     }
@@ -63,6 +69,8 @@ public static class HealthCheckExtensions
             writer.WriteEndObject();
         }
 
-        return context.Response.WriteAsync(System.Text.Encoding.UTF8.GetString(memoryStream.ToArray()));
+        return context.Response.WriteAsync(
+            System.Text.Encoding.UTF8.GetString(memoryStream.ToArray())
+        );
     }
 }

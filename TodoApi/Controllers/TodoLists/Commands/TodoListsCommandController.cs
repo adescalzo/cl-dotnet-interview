@@ -16,16 +16,24 @@ public class TodoListsCommandController(IMessageBus bus) : ControllerBase
     public async Task<IResult> PostTodoList(CreateTodoListRequest payload, CancellationToken ct)
     {
         var command = new CreateTodoListCommand(payload.Name);
-        var result = await bus.InvokeAsync<Result<CreateTodoListResponse>>(command, ct).ConfigureAwait(false);
+        var result = await bus.InvokeAsync<Result<CreateTodoListResponse>>(command, ct)
+            .ConfigureAwait(false);
 
-        return result.ToCreated(value => Url.Link("GetTodoList", new { id = value.Id }) ?? string.Empty);
+        return result.ToCreated(value =>
+            Url.Link("GetTodoList", new { id = value.Id }) ?? string.Empty
+        );
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IResult> PutTodoList(Guid id, UpdateTodoListRequest payload, CancellationToken ct)
+    public async Task<IResult> PutTodoList(
+        Guid id,
+        UpdateTodoListRequest payload,
+        CancellationToken ct
+    )
     {
         var command = new UpdateTodoListCommand(id, payload.Name);
-        var result = await bus.InvokeAsync<Result<UpdateTodoListResponse>>(command, ct).ConfigureAwait(false);
+        var result = await bus.InvokeAsync<Result<UpdateTodoListResponse>>(command, ct)
+            .ConfigureAwait(false);
 
         return result.ToOk();
     }

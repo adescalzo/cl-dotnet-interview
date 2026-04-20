@@ -1,6 +1,7 @@
 namespace TodoApi.Tests.TestSupport;
 
-public interface IBuilder<out T> where T : class
+public interface IBuilder<out T>
+    where T : class
 {
     T Build();
 

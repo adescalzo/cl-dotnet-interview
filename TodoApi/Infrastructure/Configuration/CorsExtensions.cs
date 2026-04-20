@@ -30,67 +30,72 @@ public static class CorsExtensions
     /// </example>
     public static IServiceCollection AddCorsConfiguration(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration
+    )
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var corsSettings = configuration.GetSection("CorsSettings").Get<CorsSettings>()
+        var corsSettings =
+            configuration.GetSection("CorsSettings").Get<CorsSettings>()
             ?? throw new InvalidOperationException("CorsSettings not configured in appsettings");
 
         services.AddCors(options =>
         {
-            options.AddPolicy(DefaultPolicyName, policy =>
-            {
-                // Configure allowed origins
-                if (corsSettings.AllowedOrigins?.Length > 0)
+            options.AddPolicy(
+                DefaultPolicyName,
+                policy =>
                 {
-                    policy.WithOrigins(corsSettings.AllowedOrigins);
-                }
-                else
-                {
-                    // Fallback: allow any origin (NOT RECOMMENDED for production)
-                    policy.AllowAnyOrigin();
-                }
+                    // Configure allowed origins
+                    if (corsSettings.AllowedOrigins?.Length > 0)
+                    {
+                        policy.WithOrigins(corsSettings.AllowedOrigins);
+                    }
+                    else
+                    {
+                        // Fallback: allow any origin (NOT RECOMMENDED for production)
+                        policy.AllowAnyOrigin();
+                    }
 
-                // Configure allowed methods
-                if (corsSettings.AllowedMethods?.Length > 0)
-                {
-                    policy.WithMethods(corsSettings.AllowedMethods);
-                }
-                else
-                {
-                    policy.AllowAnyMethod();
-                }
+                    // Configure allowed methods
+                    if (corsSettings.AllowedMethods?.Length > 0)
+                    {
+                        policy.WithMethods(corsSettings.AllowedMethods);
+                    }
+                    else
+                    {
+                        policy.AllowAnyMethod();
+                    }
 
-                // Configure allowed headers
-                if (corsSettings.AllowedHeaders?.Length > 0)
-                {
-                    policy.WithHeaders(corsSettings.AllowedHeaders);
-                }
-                else
-                {
-                    policy.AllowAnyHeader();
-                }
+                    // Configure allowed headers
+                    if (corsSettings.AllowedHeaders?.Length > 0)
+                    {
+                        policy.WithHeaders(corsSettings.AllowedHeaders);
+                    }
+                    else
+                    {
+                        policy.AllowAnyHeader();
+                    }
 
-                // Configure credentials
-                if (corsSettings.AllowCredentials)
-                {
-                    policy.AllowCredentials();
-                }
+                    // Configure credentials
+                    if (corsSettings.AllowCredentials)
+                    {
+                        policy.AllowCredentials();
+                    }
 
-                // Configure exposed headers
-                if (corsSettings.ExposedHeaders?.Length > 0)
-                {
-                    policy.WithExposedHeaders(corsSettings.ExposedHeaders);
-                }
+                    // Configure exposed headers
+                    if (corsSettings.ExposedHeaders?.Length > 0)
+                    {
+                        policy.WithExposedHeaders(corsSettings.ExposedHeaders);
+                    }
 
-                // Configure max age for preflight cache
-                if (corsSettings.MaxAgeSeconds > 0)
-                {
-                    policy.SetPreflightMaxAge(TimeSpan.FromSeconds(corsSettings.MaxAgeSeconds));
+                    // Configure max age for preflight cache
+                    if (corsSettings.MaxAgeSeconds > 0)
+                    {
+                        policy.SetPreflightMaxAge(TimeSpan.FromSeconds(corsSettings.MaxAgeSeconds));
+                    }
                 }
-            });
+            );
         });
 
         return services;
@@ -118,7 +123,7 @@ public static class CorsExtensions
 public class CorsSettings
 {
     /// <summary>
-    /// List of allowed origins. Example: ["http://localhost:5173", "https://app.zea.com"]
+    /// List of allowed origins. Example: ["http://localhost:5173", "https://todoapi.com"]
     /// </summary>
     public string[]? AllowedOrigins { get; set; }
 

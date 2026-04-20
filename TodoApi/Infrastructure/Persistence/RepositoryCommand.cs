@@ -11,11 +11,13 @@ public interface IRepositoryCommand<TEntity>
     Task<TEntity?> GetByAsync(
         Expression<Func<TEntity, bool>> predicate,
         bool tracking = true,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
     Task<List<TEntity>> GetManyAsync(
         Expression<Func<TEntity, bool>> predicate,
         bool tracking = true,
-        CancellationToken ct = default);
+        CancellationToken ct = default
+    );
     IQueryable<TEntity> GetQueryable(bool tracking = true, CancellationToken ct = default);
     Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken ct = default);
     Task<TEntity> AddAsync(TEntity entity, CancellationToken ct = default);

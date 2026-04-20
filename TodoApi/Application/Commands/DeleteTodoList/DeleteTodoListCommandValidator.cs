@@ -6,8 +6,6 @@ public sealed class DeleteTodoListCommandValidator : AbstractValidator<DeleteTod
 {
     public DeleteTodoListCommandValidator()
     {
-        RuleFor(x => x.Id)
-            .NotEmpty()
-            .WithErrorCode("todolists.id.empty");
+        RuleFor(x => x.Id).NotEmpty().WithErrorCode("todolists.id.empty");
     }
 }

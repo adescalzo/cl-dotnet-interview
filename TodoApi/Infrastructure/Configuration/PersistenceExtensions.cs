@@ -9,7 +9,10 @@ namespace TodoApi.Infrastructure.Configuration;
 /// </summary>
 public static class PersistenceExtensions
 {
-    public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddPersistence(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

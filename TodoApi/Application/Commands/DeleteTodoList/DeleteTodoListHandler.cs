@@ -7,7 +7,8 @@ namespace TodoApi.Application.Commands.DeleteTodoList;
 
 public sealed class DeleteTodoListHandler(
     IRepositoryCommand<TodoList> repository,
-    ILogger<DeleteTodoListHandler> logger)
+    ILogger<DeleteTodoListHandler> logger
+)
 {
     public async Task<Result> Handle(DeleteTodoListCommand command, CancellationToken ct)
     {
@@ -33,6 +34,7 @@ internal static partial class DeleteTodoListHandlerLoggerDefinition
         EventId = 300,
         Level = LogLevel.Information,
         EventName = "TodoListDeleted",
-        Message = "TodoList deleted - Id: {Id}")]
+        Message = "TodoList deleted - Id: {Id}"
+    )]
     public static partial void LogTodoListDeleted(this ILogger logger, Guid id);
 }

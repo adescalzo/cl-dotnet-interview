@@ -17,8 +17,7 @@ public class DeleteTodoListCommandValidatorTests
         var result = _validator.TestValidate(command);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.Id)
-            .WithErrorCode("todolists.id.empty");
+        result.ShouldHaveValidationErrorFor(x => x.Id).WithErrorCode("todolists.id.empty");
     }
 
     [Fact]

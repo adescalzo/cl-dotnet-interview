@@ -14,11 +14,12 @@ namespace TodoApi.Migrations
                 name: "TodoItem",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
+                    Id = table
+                        .Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsComplete = table.Column<bool>(type: "bit", nullable: false),
-                    TodoListId = table.Column<long>(type: "bigint", nullable: false)
+                    TodoListId = table.Column<long>(type: "bigint", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -28,20 +29,22 @@ namespace TodoApi.Migrations
                         column: x => x.TodoListId,
                         principalTable: "TodoList",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_TodoItem_TodoListId",
                 table: "TodoItem",
-                column: "TodoListId");
+                column: "TodoListId"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "TodoItem");
+            migrationBuilder.DropTable(name: "TodoItem");
         }
     }
 }

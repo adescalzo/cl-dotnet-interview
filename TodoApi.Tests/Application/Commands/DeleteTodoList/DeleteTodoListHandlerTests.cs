@@ -22,7 +22,8 @@ public sealed class DeleteTodoListHandlerTests : AsyncLifetimeBase
 
         _handler = new DeleteTodoListHandler(
             new TodoListCommandRepository(Context),
-            NullLogger<DeleteTodoListHandler>.Instance);
+            NullLogger<DeleteTodoListHandler>.Instance
+        );
     }
 
     [Fact]
@@ -56,7 +57,9 @@ public sealed class DeleteTodoListHandlerTests : AsyncLifetimeBase
         result.IsFailure.Should().BeTrue();
         result.Error.Definition.Should().Be(ErrorDefinition.NotFound);
 
-        var seededStillThere = await Context.TodoList.AsNoTracking().AnyAsync(x => x.Id == _seeded.Id);
+        var seededStillThere = await Context
+            .TodoList.AsNoTracking()
+            .AnyAsync(x => x.Id == _seeded.Id);
         seededStillThere.Should().BeTrue();
     }
 }

@@ -6,7 +6,10 @@ namespace TodoApi.Application.Queries.GetTodoList;
 
 public sealed class GetTodoListHandler(IRepositoryQuery<TodoList> repository)
 {
-    public async Task<Result<GetTodoListResponse>> Handle(GetTodoListQuery query, CancellationToken ct)
+    public async Task<Result<GetTodoListResponse>> Handle(
+        GetTodoListQuery query,
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -17,12 +20,17 @@ public sealed class GetTodoListHandler(IRepositoryQuery<TodoList> repository)
                     list.Id,
                     list.Name,
                     list.CreatedAt,
-                    list.Items.Select(i => new TodoListItemResponse(i.Id, i.Name, i.IsComplete)).ToList()),
-                ct)
+                    list.Items.Select(i => new TodoListItemResponse(i.Id, i.Name, i.IsComplete))
+                        .ToList()
+                ),
+                ct
+            )
             .ConfigureAwait(false);
 
         return response is null
-            ? Result.Failure<GetTodoListResponse>(ErrorResult.NotFound(nameof(TodoList), query.Id.ToString()))
+            ? Result.Failure<GetTodoListResponse>(
+                ErrorResult.NotFound(nameof(TodoList), query.Id.ToString())
+            )
             : Result.Success(response);
     }
 }

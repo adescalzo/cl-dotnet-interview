@@ -19,7 +19,5 @@
   <ItemGroup>
     <Folder Include="Infrastructure\Persistence\" />
     <Folder Include="Infrastructure\Repositories\" />
-    <Folder Include="Infrastructure\RR\" />
-    <Folder Include="Infrastructure\using Zea.Persistence.Repositories.Queries%3b\" />
   </ItemGroup>
 </Project>

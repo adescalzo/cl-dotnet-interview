@@ -8,12 +8,12 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
 {
     private readonly Faker<TodoItemData> _faker;
 
-    public TodoItemBuilder() : this(CreateDefault()) { }
+    public TodoItemBuilder()
+        : this(CreateDefault()) { }
 
     private TodoItemBuilder(Faker<TodoItemData> faker) => _faker = faker;
 
-    public TodoItemBuilder WithName(string name) =>
-        CloneWith(f => f.RuleFor(x => x.Name, name));
+    public TodoItemBuilder WithName(string name) => CloneWith(f => f.RuleFor(x => x.Name, name));
 
     public TodoItemBuilder WithIsComplete(bool isComplete) =>
         CloneWith(f => f.RuleFor(x => x.IsComplete, isComplete));
@@ -24,12 +24,13 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
     public TodoItem Build()
     {
         var data = _faker.Generate();
-        return new TodoItem
+        var item = new TodoItem(data.Name, data.TodoListId);
+        if (data.IsComplete)
         {
-            Name = data.Name,
-            IsComplete = data.IsComplete,
-            TodoListId = data.TodoListId,
-        };
+            item.Complete();
+        }
+
+        return item;
     }
 
     public IEnumerable<TodoItem> BuildList(int count) =>

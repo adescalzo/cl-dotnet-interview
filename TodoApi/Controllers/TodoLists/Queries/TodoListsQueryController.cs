@@ -15,7 +15,8 @@ public class TodoListsQueryController(IMessageBus bus) : ControllerBase
     public async Task<IResult> GetTodoLists(CancellationToken ct)
     {
         var query = new GetTodoListsQuery();
-        var result = await bus.InvokeAsync<Result<GetTodoListsResponse>>(query, ct).ConfigureAwait(false);
+        var result = await bus.InvokeAsync<Result<GetTodoListsResponse>>(query, ct)
+            .ConfigureAwait(false);
 
         return result.ToOk(r => r.TodoLists);
     }
@@ -24,7 +25,8 @@ public class TodoListsQueryController(IMessageBus bus) : ControllerBase
     public async Task<IResult> GetTodoList(Guid id, CancellationToken ct)
     {
         var query = new GetTodoListQuery(id);
-        var result = await bus.InvokeAsync<Result<GetTodoListResponse>>(query, ct).ConfigureAwait(false);
+        var result = await bus.InvokeAsync<Result<GetTodoListResponse>>(query, ct)
+            .ConfigureAwait(false);
 
         return result.ToOk();
     }

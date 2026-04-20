@@ -11,12 +11,15 @@ public sealed class ValidationMiddlewareTests
     [Fact]
     public async Task BeforeAsync_WhenCommandIsInvalid_ReturnsValidationFailure()
     {
-        var validators = new IValidator<CreateTodoListCommand>[] { new CreateTodoListCommandValidator() };
+        var validators = new IValidator<CreateTodoListCommand>[]
+        {
+            new CreateTodoListCommandValidator(),
+        };
 
-        var result = await ValidationMiddleware.BeforeAsync<CreateTodoListResponse, CreateTodoListCommand>(
-            new CreateTodoListCommand(string.Empty),
-            validators,
-            CancellationToken.None);
+        var result = await ValidationMiddleware.BeforeAsync<
+            CreateTodoListResponse,
+            CreateTodoListCommand
+        >(new CreateTodoListCommand(string.Empty), validators, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.False(result!.IsSuccess);
@@ -29,12 +32,15 @@ public sealed class ValidationMiddlewareTests
     [Fact]
     public async Task BeforeAsync_WhenCommandIsValid_ReturnsNullToContinue()
     {
-        var validators = new IValidator<CreateTodoListCommand>[] { new CreateTodoListCommandValidator() };
+        var validators = new IValidator<CreateTodoListCommand>[]
+        {
+            new CreateTodoListCommandValidator(),
+        };
 
-        var result = await ValidationMiddleware.BeforeAsync<CreateTodoListResponse, CreateTodoListCommand>(
-            new CreateTodoListCommand("Valid name"),
-            validators,
-            CancellationToken.None);
+        var result = await ValidationMiddleware.BeforeAsync<
+            CreateTodoListResponse,
+            CreateTodoListCommand
+        >(new CreateTodoListCommand("Valid name"), validators, CancellationToken.None);
 
         Assert.Null(result);
     }
@@ -42,12 +48,16 @@ public sealed class ValidationMiddlewareTests
     [Fact]
     public async Task BeforeAsync_VoidCommand_WhenInvalid_ReturnsNonGenericValidationFailure()
     {
-        var validators = new IValidator<DeleteTodoListCommand>[] { new DeleteTodoListCommandValidator() };
+        var validators = new IValidator<DeleteTodoListCommand>[]
+        {
+            new DeleteTodoListCommandValidator(),
+        };
 
         var result = await ValidationMiddleware.BeforeAsync<DeleteTodoListCommand>(
             new DeleteTodoListCommand(Guid.Empty),
             validators,
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         Assert.NotNull(result);
         Assert.False(result!.IsSuccess);

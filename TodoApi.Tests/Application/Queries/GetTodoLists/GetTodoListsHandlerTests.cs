@@ -14,7 +14,8 @@ public sealed class GetTodoListsHandlerTests : AsyncLifetimeBase
     {
         _handler = new GetTodoListsHandler(
             new TodoListQueryRepository(Context),
-            NullLogger<GetTodoListsHandler>.Instance);
+            NullLogger<GetTodoListsHandler>.Instance
+        );
 
         return Task.CompletedTask;
     }

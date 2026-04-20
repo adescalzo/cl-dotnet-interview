@@ -14,4 +14,3 @@ public class UnitOfWork(TodoContext dbContext) : IUnitOfWork
         return await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }
-

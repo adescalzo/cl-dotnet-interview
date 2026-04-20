@@ -9,7 +9,7 @@ public enum ErrorDefinition
     NotFound,
     Validation,
     Conflict,
-    Unauthorized
+    Unauthorized,
 }
 
 public class Result
@@ -27,7 +27,8 @@ public class Result
     public ErrorResult Error { get; }
     public IEnumerable<ErrorResult> Errors { get; }
 
-    public string GetErrorMessage() => string.Join(", ", Errors.Select(x => $"{x.Definition}|{x.Description}"));
+    public string GetErrorMessage() =>
+        string.Join(", ", Errors.Select(x => $"{x.Definition}|{x.Description}"));
 
     public static Result Success() => new([]);
 
@@ -37,16 +38,17 @@ public class Result
 
     public static Result Failure(ErrorResult[] errors) => new(errors);
 
-    public static Result<T> Failure<T>(ErrorResult error, T? value = default)
-        => Result<T>.CreateFailure([error], value);
+    public static Result<T> Failure<T>(ErrorResult error, T? value = default) =>
+        Result<T>.CreateFailure([error], value);
 
-    public static Result<T> Failure<T>(ErrorResult[] errors, T? value = default)
-        => Result<T>.CreateFailure(errors, value);
+    public static Result<T> Failure<T>(ErrorResult[] errors, T? value = default) =>
+        Result<T>.CreateFailure(errors, value);
 }
 
 public class Result<T> : Result
 {
-    private Result(ErrorResult[] errors, T? value) : base(errors)
+    private Result(ErrorResult[] errors, T? value)
+        : base(errors)
     {
         Value = value;
     }

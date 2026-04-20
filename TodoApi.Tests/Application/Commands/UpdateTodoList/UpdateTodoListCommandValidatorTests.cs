@@ -17,8 +17,7 @@ public class UpdateTodoListCommandValidatorTests
         var result = _validator.TestValidate(command);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.Id)
-            .WithErrorCode("todolists.id.empty");
+        result.ShouldHaveValidationErrorFor(x => x.Id).WithErrorCode("todolists.id.empty");
     }
 
     [Theory]
@@ -33,8 +32,7 @@ public class UpdateTodoListCommandValidatorTests
         var result = _validator.TestValidate(command);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorCode("todolists.name.empty");
+        result.ShouldHaveValidationErrorFor(x => x.Name).WithErrorCode("todolists.name.empty");
     }
 
     [Fact]
@@ -47,8 +45,7 @@ public class UpdateTodoListCommandValidatorTests
         var result = _validator.TestValidate(command);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorCode("todolists.name.too_long");
+        result.ShouldHaveValidationErrorFor(x => x.Name).WithErrorCode("todolists.name.too_long");
     }
 
     [Fact]

@@ -6,9 +6,7 @@ public sealed class UpdateTodoListCommandValidator : AbstractValidator<UpdateTod
 {
     public UpdateTodoListCommandValidator()
     {
-        RuleFor(x => x.Id)
-            .NotEmpty()
-            .WithErrorCode("todolists.id.empty");
+        RuleFor(x => x.Id).NotEmpty().WithErrorCode("todolists.id.empty");
 
         RuleFor(x => x.Name)
             .NotEmpty()

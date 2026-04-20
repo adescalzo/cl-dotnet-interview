@@ -6,8 +6,6 @@ public sealed class GetTodoListQueryValidator : AbstractValidator<GetTodoListQue
 {
     public GetTodoListQueryValidator()
     {
-        RuleFor(x => x.Id)
-            .NotEmpty()
-            .WithErrorCode("todolists.id.empty");
+        RuleFor(x => x.Id).NotEmpty().WithErrorCode("todolists.id.empty");
     }
 }

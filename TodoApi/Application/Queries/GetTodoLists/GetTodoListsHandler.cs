@@ -7,21 +7,30 @@ namespace TodoApi.Application.Queries.GetTodoLists;
 
 public sealed class GetTodoListsHandler(
     IRepositoryQuery<TodoList> repository,
-    ILogger<GetTodoListsHandler> logger)
+    ILogger<GetTodoListsHandler> logger
+)
 {
-    public async Task<Result<GetTodoListsResponse>> Handle(GetTodoListsQuery query, CancellationToken ct)
+    public async Task<Result<GetTodoListsResponse>> Handle(
+        GetTodoListsQuery query,
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var summaries = (await repository
-            .GetAllAsync(
-                list => new TodoListSummary(
-                    list.Id,
-                    list.Name,
-                    list.CreatedAt,
-                    list.Items.Select(i => new TodoItemSummary(i.Id, i.Name, i.IsComplete)).ToList()),
-                ct)
-            .ConfigureAwait(false)).ToList();
+        var summaries = (
+            await repository
+                .GetAllAsync(
+                    list => new TodoListSummary(
+                        list.Id,
+                        list.Name,
+                        list.CreatedAt,
+                        list.Items.Select(i => new TodoItemSummary(i.Id, i.Name, i.IsComplete))
+                            .ToList()
+                    ),
+                    ct
+                )
+                .ConfigureAwait(false)
+        ).ToList();
 
         logger.LogTodoListsFetched(summaries.Count);
 
@@ -35,6 +44,7 @@ internal static partial class GetTodoListsHandlerLoggerDefinition
         EventId = 200,
         Level = LogLevel.Information,
         EventName = "TodoListsFetched",
-        Message = "Fetched {Count} TodoLists")]
+        Message = "Fetched {Count} TodoLists"
+    )]
     public static partial void LogTodoListsFetched(this ILogger logger, int count);
 }

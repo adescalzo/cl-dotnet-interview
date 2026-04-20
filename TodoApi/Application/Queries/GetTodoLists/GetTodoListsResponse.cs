@@ -6,6 +6,7 @@ public sealed record TodoListSummary(
     Guid Id,
     string Name,
     DateTime CreatedAt,
-    IReadOnlyList<TodoItemSummary> Items);
+    IReadOnlyList<TodoItemSummary> Items
+);
 
 public sealed record TodoItemSummary(long Id, string Name, bool IsComplete);

@@ -33,26 +33,28 @@ public static class CorrelationIdExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
 
-        app.Use(async (context, next) =>
-        {
-            var correlationId = GetOrCreateCorrelationId(context);
-
-            // Add to response headers for client-side correlation
-            context.Response.OnStarting(() =>
+        app.Use(
+            async (context, next) =>
             {
-                context.Response.Headers.TryAdd(CorrelationIdHeader, correlationId);
-                return Task.CompletedTask;
-            });
+                var correlationId = GetOrCreateCorrelationId(context);
 
-            // Store in HttpContext.Items for access in handlers/services
-            context.Items["CorrelationId"] = correlationId;
+                // Add to response headers for client-side correlation
+                context.Response.OnStarting(() =>
+                {
+                    context.Response.Headers.TryAdd(CorrelationIdHeader, correlationId);
+                    return Task.CompletedTask;
+                });
 
-            // Push to Serilog LogContext - all logs in this request will include it
-            using (LogContext.PushProperty("CorrelationId", correlationId))
-            {
-                await next();
+                // Store in HttpContext.Items for access in handlers/services
+                context.Items["CorrelationId"] = correlationId;
+
+                // Push to Serilog LogContext - all logs in this request will include it
+                using (LogContext.PushProperty("CorrelationId", correlationId))
+                {
+                    await next();
+                }
             }
-        });
+        );
 
         return app;
     }
@@ -60,8 +62,10 @@ public static class CorrelationIdExtensions
     private static string GetOrCreateCorrelationId(HttpContext context)
     {
         // Check for incoming correlation ID header (distributed tracing from frontend/gateway)
-        if (context.Request.Headers.TryGetValue(CorrelationIdHeader, out var existingId)
-            && !string.IsNullOrWhiteSpace(existingId))
+        if (
+            context.Request.Headers.TryGetValue(CorrelationIdHeader, out var existingId)
+            && !string.IsNullOrWhiteSpace(existingId)
+        )
         {
             return existingId.ToString();
         }

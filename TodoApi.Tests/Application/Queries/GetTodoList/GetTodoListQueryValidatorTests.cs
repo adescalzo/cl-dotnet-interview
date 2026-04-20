@@ -17,8 +17,7 @@ public class GetTodoListQueryValidatorTests
         var result = _validator.TestValidate(query);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.Id)
-            .WithErrorCode("todolists.id.empty");
+        result.ShouldHaveValidationErrorFor(x => x.Id).WithErrorCode("todolists.id.empty");
     }
 
     [Fact]

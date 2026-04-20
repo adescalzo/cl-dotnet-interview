@@ -23,7 +23,8 @@ public sealed class UpdateTodoListHandlerTests : AsyncLifetimeBase
         _handler = new UpdateTodoListHandler(
             new TodoListCommandRepository(Context),
             Clock,
-            NullLogger<UpdateTodoListHandler>.Instance);
+            NullLogger<UpdateTodoListHandler>.Instance
+        );
     }
 
     [Fact]

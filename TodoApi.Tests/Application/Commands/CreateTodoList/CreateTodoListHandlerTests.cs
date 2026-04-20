@@ -15,7 +15,8 @@ public sealed class CreateTodoListHandlerTests : AsyncLifetimeBase
         _handler = new CreateTodoListHandler(
             new TodoListCommandRepository(Context),
             Clock,
-            NullLogger<CreateTodoListHandler>.Instance);
+            NullLogger<CreateTodoListHandler>.Instance
+        );
 
         return Task.CompletedTask;
     }

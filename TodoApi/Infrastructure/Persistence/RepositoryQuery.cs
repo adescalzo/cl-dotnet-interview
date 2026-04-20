@@ -10,12 +10,20 @@ namespace TodoApi.Infrastructure.Persistence;
 public interface IRepositoryQuery<TEntity>
 {
     Task<TEntity?> GetByIdAsync(Guid id, CancellationToken ct = default);
-    Task<T?> GetByIdAsync<T>(Guid id, Expression<Func<TEntity, T>> projection, CancellationToken ct = default);
-    Task<TEntity?> GetByAsync(Expression<Func<TEntity, bool>> filter, CancellationToken ct = default);
+    Task<T?> GetByIdAsync<T>(
+        Guid id,
+        Expression<Func<TEntity, T>> projection,
+        CancellationToken ct = default
+    );
+    Task<TEntity?> GetByAsync(
+        Expression<Func<TEntity, bool>> filter,
+        CancellationToken ct = default
+    );
     IQueryable<TEntity> GetQueryable();
     IQueryable<TEntity> GetActiveQueryable();
     Task<PagedResponse<T>> GetPaginatedAsync<T>(
-        int page, int pageSize,
+        int page,
+        int pageSize,
         Expression<Func<TEntity, T>> projection,
         Expression<Func<TEntity, bool>>? filter,
         CancellationToken ct = default
@@ -26,8 +34,14 @@ public interface IRepositoryQuery<TEntity>
         CancellationToken ct = default
     );
     Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken ct = default);
-    Task<IEnumerable<T>> GetAllAsync<T>(Expression<Func<TEntity, T>> projection, CancellationToken ct = default);
-    Task<IEnumerable<T>> GetAllActiveAsync<T>(Expression<Func<TEntity, T>> projection, CancellationToken ct = default);
+    Task<IEnumerable<T>> GetAllAsync<T>(
+        Expression<Func<TEntity, T>> projection,
+        CancellationToken ct = default
+    );
+    Task<IEnumerable<T>> GetAllActiveAsync<T>(
+        Expression<Func<TEntity, T>> projection,
+        CancellationToken ct = default
+    );
     Task<bool> Any(Expression<Func<TEntity, bool>> predicate, CancellationToken ct = default);
 }
 
@@ -35,16 +49,24 @@ public interface IRepositoryQuery<TEntity>
 /// Base class for command (write) repositories.
 /// Allows tracking for write operations.
 /// </summary>
-public abstract class RepositoryCommand<TEntity>(TodoContext context) : IRepositoryCommand<TEntity> where TEntity : Entity
+public abstract class RepositoryCommand<TEntity>(TodoContext context) : IRepositoryCommand<TEntity>
+    where TEntity : Entity
 {
     protected DbSet<TEntity> DbSetEntities => context.Set<TEntity>();
 
     protected TodoContext Context => context;
 
-    public async Task<TEntity?> GetByIdAsync(Guid id, bool tracking = true, CancellationToken ct = default)
+    public async Task<TEntity?> GetByIdAsync(
+        Guid id,
+        bool tracking = true,
+        CancellationToken ct = default
+    )
     {
         var result = !tracking
-            ? await DbSetEntities.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct).ConfigureAwait(false)
+            ? await DbSetEntities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id, ct)
+                .ConfigureAwait(false)
             : await DbSetEntities.FirstOrDefaultAsync(x => x.Id == id, ct).ConfigureAwait(false);
 
         return result;
@@ -53,7 +75,8 @@ public abstract class RepositoryCommand<TEntity>(TodoContext context) : IReposit
     public async Task<TEntity?> GetByAsync(
         Expression<Func<TEntity, bool>> predicate,
         bool tracking = true,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var e = DbSetEntities.Where(predicate);
         if (!tracking)
@@ -67,7 +90,8 @@ public abstract class RepositoryCommand<TEntity>(TodoContext context) : IReposit
     public async Task<List<TEntity>> GetManyAsync(
         Expression<Func<TEntity, bool>> predicate,
         bool tracking = true,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var query = DbSetEntities.Where(predicate);
         if (!tracking)
@@ -89,7 +113,10 @@ public abstract class RepositoryCommand<TEntity>(TodoContext context) : IReposit
         return q;
     }
 
-    public async Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken ct = default)
+    public async Task<bool> AnyAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken ct = default
+    )
     {
         return await DbSetEntities.AsNoTracking().AnyAsync(predicate, ct).ConfigureAwait(false);
     }

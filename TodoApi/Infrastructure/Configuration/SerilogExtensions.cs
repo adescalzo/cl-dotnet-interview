@@ -14,7 +14,9 @@ public static class SerilogExtensions
     /// - 4xx: Warning (client errors should not be logged as errors)
     /// - 2xx/3xx: Information
     /// </summary>
-    public static IApplicationBuilder UseSerilogRequestLoggingConfiguration(this IApplicationBuilder app)
+    public static IApplicationBuilder UseSerilogRequestLoggingConfiguration(
+        this IApplicationBuilder app
+    )
     {
         app.UseSerilogRequestLogging(options =>
         {

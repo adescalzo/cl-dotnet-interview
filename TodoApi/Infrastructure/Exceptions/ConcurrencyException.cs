@@ -2,17 +2,14 @@ namespace TodoApi.Infrastructure.Exceptions;
 
 public class ConcurrencyException : Exception
 {
-    public ConcurrencyException() : base()
-    {
-    }
+    public ConcurrencyException()
+        : base() { }
 
-    public ConcurrencyException(string description) : base(description)
-    {
-    }
+    public ConcurrencyException(string description)
+        : base(description) { }
 
-    public ConcurrencyException(string description, Exception ex) : base(description, ex)
-    {
-    }
+    public ConcurrencyException(string description, Exception ex)
+        : base(description, ex) { }
 
     public ConcurrencyException(string resource, string id, int version, int currentVersion)
         : base(

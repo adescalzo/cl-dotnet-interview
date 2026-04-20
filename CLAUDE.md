@@ -2,6 +2,21 @@
 
 Guidance for Claude Code (claude.ai/code) when working in this repository.
 
+## Collaboration style
+
+- **Don't be condescending.** No "great question!", "you're absolutely
+  right!", "excellent point!", no praise for ordinary requests. Skip
+  the compliments and answer.
+- **Be critical of ideas and proposals** — mine and yours. If a
+  suggestion has a flaw, a hidden cost, a wrong assumption, or a
+  better alternative, say so plainly before executing. Agreement by
+  default is not helpful; it just ships worse code.
+- Push back with reasons, not with hedges. "This breaks X because Y"
+  beats "you might want to consider…".
+- If you end up disagreeing with a directive and still proceeding,
+  call out the disagreement explicitly so the decision is visible
+  and reversible.
+
 ## Current focus
 
 We are **closing the API and frontend architecture first**. Sync between
@@ -144,6 +159,16 @@ Conventions:
   exceptional conditions (ADR-0006).
 - Handlers are **thin POCOs**: load aggregate(s), call domain methods,
   persist, return. Business rules live in the domain, not the handler.
+- Handlers **do not inject `TodoContext`** and **do not call
+  `SaveChangesAsync` explicitly**. Persistence is flushed by the
+  Wolverine `TransactionMiddleware.Finally` (see
+  `TodoApi/Infrastructure/Mediator/TransactionMiddleware.cs`), which
+  runs `SaveChangesAsync` on the tracked `TodoContext` when
+  `ChangeTracker.HasChanges()` is true. Consequence: response values
+  must be derivable from state known **before** the save — e.g. IDs
+  assigned client-side (`GuidV7` on aggregates) or inputs from the
+  command. Do not design a response that depends on DB-generated
+  values materialising inside the handler body.
 - Controllers/endpoints translate HTTP → command/query, dispatch via
   `IMessageBus.InvokeAsync<T>(...)`, translate result → HTTP via the
   shared `Result → HTTP` helper that renders failures as

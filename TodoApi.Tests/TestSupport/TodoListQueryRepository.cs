@@ -14,32 +14,32 @@ namespace TodoApi.Tests.TestSupport;
 /// </summary>
 internal sealed class TodoListQueryRepository(TodoContext context) : IRepositoryQuery<TodoList>
 {
-    public async Task<TodoList?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await context.TodoList.FirstOrDefaultAsync(x => x.Id == id, ct).ConfigureAwait(false);
+    public async Task<TodoList?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        await context.TodoList.FirstOrDefaultAsync(x => x.Id == id, ct).ConfigureAwait(false);
 
     public async Task<T?> GetByIdAsync<T>(
         Guid id,
         Expression<Func<TodoList, T>> projection,
-        CancellationToken ct = default)
-        => await context.TodoList
-            .Where(x => x.Id == id)
+        CancellationToken ct = default
+    ) =>
+        await context
+            .TodoList.Where(x => x.Id == id)
             .Select(projection)
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
-    public Task<IEnumerable<TodoList>> GetAllAsync(CancellationToken ct = default)
-        => throw new NotSupportedException();
+    public Task<IEnumerable<TodoList>> GetAllAsync(CancellationToken ct = default) =>
+        throw new NotSupportedException();
 
     public async Task<IEnumerable<T>> GetAllAsync<T>(
         Expression<Func<TodoList, T>> projection,
-        CancellationToken ct = default)
-        => await context.TodoList
-            .Select(projection)
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
+        CancellationToken ct = default
+    ) => await context.TodoList.Select(projection).ToListAsync(ct).ConfigureAwait(false);
 
-    public Task<TodoList?> GetByAsync(Expression<Func<TodoList, bool>> filter, CancellationToken ct = default)
-        => throw new NotSupportedException();
+    public Task<TodoList?> GetByAsync(
+        Expression<Func<TodoList, bool>> filter,
+        CancellationToken ct = default
+    ) => throw new NotSupportedException();
 
     public IQueryable<TodoList> GetQueryable() => throw new NotSupportedException();
 
@@ -50,20 +50,22 @@ internal sealed class TodoListQueryRepository(TodoContext context) : IRepository
         int pageSize,
         Expression<Func<TodoList, T>> projection,
         Expression<Func<TodoList, bool>>? filter,
-        CancellationToken ct = default)
-        => throw new NotSupportedException();
+        CancellationToken ct = default
+    ) => throw new NotSupportedException();
 
     public Task<IEnumerable<T>> GetAsync<T>(
         Expression<Func<TodoList, T>> projection,
         Expression<Func<TodoList, bool>>? filter,
-        CancellationToken ct = default)
-        => throw new NotSupportedException();
+        CancellationToken ct = default
+    ) => throw new NotSupportedException();
 
     public Task<IEnumerable<T>> GetAllActiveAsync<T>(
         Expression<Func<TodoList, T>> projection,
-        CancellationToken ct = default)
-        => throw new NotSupportedException();
+        CancellationToken ct = default
+    ) => throw new NotSupportedException();
 
-    public Task<bool> Any(Expression<Func<TodoList, bool>> predicate, CancellationToken ct = default)
-        => throw new NotSupportedException();
+    public Task<bool> Any(
+        Expression<Func<TodoList, bool>> predicate,
+        CancellationToken ct = default
+    ) => throw new NotSupportedException();
 }

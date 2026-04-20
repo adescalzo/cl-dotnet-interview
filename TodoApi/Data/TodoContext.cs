@@ -20,8 +20,5 @@ public class TodoContext : DbContext
 
         // Apply all entity configurations from this assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TodoContext).Assembly);
-
-        // Set default schema
-        modelBuilder.HasDefaultSchema("zea");
     }
 }

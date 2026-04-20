@@ -8,9 +8,13 @@ namespace TodoApi.Application.Commands.UpdateTodoList;
 public sealed class UpdateTodoListHandler(
     IRepositoryCommand<TodoList> repository,
     IClock clock,
-    ILogger<UpdateTodoListHandler> logger)
+    ILogger<UpdateTodoListHandler> logger
+)
 {
-    public async Task<Result<UpdateTodoListResponse>> Handle(UpdateTodoListCommand command, CancellationToken ct)
+    public async Task<Result<UpdateTodoListResponse>> Handle(
+        UpdateTodoListCommand command,
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -18,14 +22,17 @@ public sealed class UpdateTodoListHandler(
         if (todoList is null)
         {
             return Result.Failure<UpdateTodoListResponse>(
-                ErrorResult.NotFound(nameof(TodoList), command.Id.ToString()));
+                ErrorResult.NotFound(nameof(TodoList), command.Id.ToString())
+            );
         }
 
         todoList.Update(command.Name, clock.UtcNow);
 
         logger.LogTodoListUpdated(todoList.Id, todoList.Name);
 
-        return Result.Success(new UpdateTodoListResponse(todoList.Id, todoList.Name, todoList.UpdatedAt));
+        return Result.Success(
+            new UpdateTodoListResponse(todoList.Id, todoList.Name, todoList.UpdatedAt)
+        );
     }
 }
 
@@ -35,6 +42,7 @@ internal static partial class UpdateTodoListHandlerLoggerDefinition
         EventId = 400,
         Level = LogLevel.Information,
         EventName = "TodoListUpdated",
-        Message = "TodoList updated - Id: {Id}, Name: {Name}")]
+        Message = "TodoList updated - Id: {Id}, Name: {Name}"
+    )]
     public static partial void LogTodoListUpdated(this ILogger logger, Guid id, string name);
 }

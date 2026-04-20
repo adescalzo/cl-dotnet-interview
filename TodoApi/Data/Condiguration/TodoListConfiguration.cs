@@ -12,6 +12,15 @@ public class TodoListConfiguration : IEntityTypeConfiguration<TodoList>
 
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Name).IsRequired().HasMaxLength(200);
-        builder.HasMany(t => t.Items).WithOne(i => i.TodoList).HasForeignKey(i => i.TodoListId);
+
+        builder
+            .HasMany(t => t.Items)
+            .WithOne(i => i.TodoList)
+            .HasForeignKey(i => i.TodoListId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .Metadata.FindNavigation(nameof(TodoList.Items))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

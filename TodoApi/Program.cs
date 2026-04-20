@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -19,12 +21,15 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     // Logging Configuration
-    builder.Host.UseSerilog((context, services, configuration) => configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext());
+    builder.Host.UseSerilog(
+        (context, services, configuration) =>
+            configuration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+    );
 
-    Log.Information("Starting Zea API");
+    Log.Information("Starting Todo API");
 
     // API Configuration
     builder.Services.AddProblemDetailsConfiguration();
@@ -46,11 +51,12 @@ try
     builder.Logging.ClearProviders();
     builder.Logging.AddConsole();
 
-    builder.Services
-        .AddHealthChecks()
+    builder
+        .Services.AddHealthChecks()
         .AddDbContextCheck<TodoContext>(
             name: "TodoContext",
-            failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy);
+            failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy
+        );
 
     // CORS Configuration
     builder.Services.AddCorsConfiguration(builder.Configuration);
@@ -73,6 +79,24 @@ try
     app.MapControllers();
 
     app.MapHub<NotificatoinHub>("/notificationHub");
+
+    // Log the bound listener URLs once Kestrel has actually started.
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        var addresses = app
+            .Services.GetRequiredService<IServer>()
+            .Features.Get<IServerAddressesFeature>()
+            ?.Addresses;
+
+        if (addresses is { Count: > 0 })
+        {
+            Log.Information("Todo API listening on: {Addresses}", addresses);
+        }
+        else
+        {
+            Log.Information("Todo API started, but no server addresses were reported.");
+        }
+    });
 
     await app.RunAsync().ConfigureAwait(false);
 }

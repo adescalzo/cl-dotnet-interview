@@ -4,6 +4,8 @@ namespace TodoApi.Data.Entities;
 
 public class TodoList : Entity, IAuditable, ISynchronizable
 {
+    private readonly List<TodoItem> _items = [];
+
     private TodoList()
     {
         Name = string.Empty;
@@ -18,7 +20,7 @@ public class TodoList : Entity, IAuditable, ISynchronizable
 
     public string Name { get; private set; }
 
-    public ICollection<TodoItem> Items { get; } = [];
+    public IReadOnlyCollection<TodoItem> Items => _items;
 
     public DateTime CreatedAt { get; }
 
@@ -34,16 +36,51 @@ public class TodoList : Entity, IAuditable, ISynchronizable
         UpdatedAt = updatedAt;
     }
 
-    public void AddItem(TodoItem item, DateTime updatedAt)
+    public TodoItem AddItem(string name, DateTime updatedAt)
     {
-        Items.Add(item);
+        var item = new TodoItem(name, Id);
+        _items.Add(item);
         UpdatedAt = updatedAt;
+        return item;
     }
 
-    public void RemoveItem(TodoItem item, DateTime upDateTime)
+    public TodoItem? UpdateItem(long itemId, string name, DateTime updatedAt)
     {
-        Items.Remove(item);
-        UpdatedAt = upDateTime;
+        var item = _items.Find(i => i.Id == itemId);
+        if (item is null)
+        {
+            return null;
+        }
+
+        item.Rename(name);
+        UpdatedAt = updatedAt;
+        return item;
+    }
+
+    public TodoItem? CompleteItem(long itemId, DateTime updatedAt)
+    {
+        var item = _items.Find(i => i.Id == itemId);
+        if (item is null)
+        {
+            return null;
+        }
+
+        item.Complete();
+        UpdatedAt = updatedAt;
+        return item;
+    }
+
+    public bool RemoveItem(long itemId, DateTime updatedAt)
+    {
+        var item = _items.Find(i => i.Id == itemId);
+        if (item is null)
+        {
+            return false;
+        }
+
+        _items.Remove(item);
+        UpdatedAt = updatedAt;
+        return true;
     }
 
     public void Synchronized(DateTime synchronizedAt)

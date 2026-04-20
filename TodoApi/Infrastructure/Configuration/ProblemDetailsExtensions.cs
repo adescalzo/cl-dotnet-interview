@@ -10,7 +10,9 @@ namespace TodoApi.Infrastructure.Configuration;
 /// </summary>
 public static class ProblemDetailsExtensions
 {
-    public static IServiceCollection AddProblemDetailsConfiguration(this IServiceCollection services)
+    public static IServiceCollection AddProblemDetailsConfiguration(
+        this IServiceCollection services
+    )
     {
         services.AddProblemDetails(options =>
         {
@@ -20,12 +22,16 @@ public static class ProblemDetailsExtensions
                 context.ProblemDetails.Instance = context.HttpContext.Request.Path;
 
                 // Add correlation ID for debugging (consistent with logs)
-                context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.GetCorrelationId();
+                context.ProblemDetails.Extensions["correlationId"] =
+                    context.HttpContext.GetCorrelationId();
                 // Add trace ID for debugging
                 context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
 
                 // Add timestamp
-                var dateTime = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
+                var dateTime = DateTime.UtcNow.ToString(
+                    "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+                    CultureInfo.InvariantCulture
+                );
                 context.ProblemDetails.Extensions["timestamp"] = dateTime;
 
                 // Handle BadHttpRequestException specially
@@ -35,7 +41,8 @@ public static class ProblemDetailsExtensions
                     context.ProblemDetails.Status = badRequestEx.StatusCode;
                     context.ProblemDetails.Title = "Bad Request";
                     context.ProblemDetails.Detail = badRequestEx.Message;
-                    context.ProblemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
+                    context.ProblemDetails.Type =
+                        "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 }
             };
         });

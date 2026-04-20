@@ -11,9 +11,13 @@ namespace TodoApi.Application.Commands.CreateTodoList;
 public sealed class CreateTodoListHandler(
     IRepositoryCommand<TodoList> repository,
     IClock clock,
-    ILogger<CreateTodoListHandler> logger)
+    ILogger<CreateTodoListHandler> logger
+)
 {
-    public async Task<Result<CreateTodoListResponse>> Handle(CreateTodoListCommand command, CancellationToken ct)
+    public async Task<Result<CreateTodoListResponse>> Handle(
+        CreateTodoListCommand command,
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -34,6 +38,7 @@ internal static partial class CreateTodoListHandlerLoggerDefinition
         EventId = 100,
         Level = LogLevel.Information,
         EventName = "TodoListCreated",
-        Message = "TodoList created - Id: {Id}, Name: {Name}")]
+        Message = "TodoList created - Id: {Id}, Name: {Name}"
+    )]
     public static partial void LogTodoListCreated(this ILogger logger, Guid id, string name);
 }
