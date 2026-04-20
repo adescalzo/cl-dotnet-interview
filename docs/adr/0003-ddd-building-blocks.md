@@ -81,4 +81,5 @@ when sync work begins).
 - Builds on: ADR-0002 (Clean Architecture + Modular Monolith).
 - Related: ADR-0004 (CQRS handlers stay thin because behavior lives on
   the aggregate), ADR-0005 (EF Core mapping conventions for these
-  building blocks).
+  building blocks), ADR-0010 (UUIDv7 as the concrete identifier type
+  for entities and aggregates).

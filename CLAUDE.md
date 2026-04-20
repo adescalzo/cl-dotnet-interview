@@ -121,29 +121,45 @@ Application (and DTOs, never on Domain entities directly).
 - **Specifications** for non-trivial queries that belong to the domain
   vocabulary.
 
-### CQRS with Kommand
+### CQRS with Wolverine
 
-We use the **Kommand** library (<https://github.com/Atherio-Ltd/Kommand>)
-as our CQRS dispatcher. Add it to `Directory.Packages.props` once and
-reference it from each module's `Application` project.
+We use **Wolverine** (<https://wolverinefx.net>) as our CQRS
+dispatcher and in-process message bus. Packaged as `WolverineFx` in
+`Directory.Packages.props`. See ADR-0008 (which supersedes ADR-0004's
+Kommand choice).
 
 Conventions:
 
 - `Application/Commands/<UseCase>/` contains the command record, the
-  handler, and (optionally) a validator. One folder per use case.
+  handler class, and (optionally) a validator. One folder per use
+  case.
 - `Application/Queries/<UseCase>/` mirrors the same shape for reads.
-- Commands return `Result` / `Result<T>` — no throwing for expected
+- Commands and queries are plain records — **no marker interface**.
+  Wolverine discovers handlers by convention: a class whose name ends
+  in `Handler` with a `Handle` / `HandleAsync` method taking the
+  message type. Keep handlers in `Application/Commands|Queries/…`
+  so the auto-scan picks them up.
+- Handlers return `Result` / `Result<T>` — no throwing for expected
   failures (validation, not-found, conflict). Throw only for truly
-  exceptional conditions.
-- Handlers are **thin**: load aggregate(s), call domain methods, persist,
-  return. Business rules live in the domain, not the handler.
+  exceptional conditions (ADR-0006).
+- Handlers are **thin POCOs**: load aggregate(s), call domain methods,
+  persist, return. Business rules live in the domain, not the handler.
 - Controllers/endpoints translate HTTP → command/query, dispatch via
-  Kommand, translate result → HTTP via the shared `Result → HTTP`
-  helper that renders failures as `ProblemDetails` (see
-  "API error responses" below). No business logic in controllers.
-- The marker interfaces `ICommand` / `IQuery` are already accepted by
-  `.editorconfig` (CA1040 is disabled with a comment pointing at this
-  pattern).
+  `IMessageBus.InvokeAsync<T>(...)`, translate result → HTTP via the
+  shared `Result → HTTP` helper that renders failures as
+  `ProblemDetails` (see "API error responses" below). No business
+  logic in controllers.
+- Cross-cutting concerns use **Wolverine middleware**:
+  - FluentValidation via `WolverineFx.FluentValidation`, wired so that
+    validator failures become a `Result` with
+    `Error.Category = Validation`. Do **not** throw `ValidationException`
+    from handlers or middleware (ADR-0006).
+  - Transactions via Wolverine's `TransactionalMiddleware` /
+    `[Transactional]` once a handler crosses aggregates.
+  - Logging/tracing via Wolverine's OpenTelemetry support (ADR-0009).
+- Domain events raised by aggregates (ADR-0003) are published via
+  Wolverine (`CascadeMessages` on the handler) after
+  `SaveChangesAsync` returns — no hand-rolled dispatcher.
 
 ### Entity Framework Core
 
@@ -190,6 +206,27 @@ Conventions:
 
 See ADR-0007.
 
+### Logging (Serilog)
+
+Logging goes through **Serilog** (`Serilog.AspNetCore` + Console /
+File / Seq sinks). See ADR-0009. Highlights:
+
+- `Program.cs` calls `UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration))`.
+  All sink/enricher configuration lives in `appsettings*.json` under
+  a `Serilog` section — do not hard-code sinks in C#.
+- Required enrichers: `FromLogContext`, `WithMachineName`,
+  `WithEnvironmentName`. The `TraceId` propagated via `LogContext`
+  is the same one rendered in `ProblemDetails.traceId` (ADR-0007),
+  so logs and error responses pivot against each other.
+- Sinks: Console (dev loop), rolling File at `logs/todoapi-.log`
+  (30-day retention), Seq at `http://localhost:5341` in the
+  devcontainer. Seq is an optional dev tool — writes must fail
+  silently, never crash the app.
+- Use `ILogger<T>` in consumers. Do not reference `Log.Logger` or
+  Serilog types outside the composition root.
+- Do **not** log request/response bodies by default. Adding
+  per-endpoint body logging requires explicit scope + redaction.
+
 ### Patterns: use them where they pay rent
 
 Apply patterns when the requirement justifies them. Pick the *simplest*
@@ -225,8 +262,11 @@ Highlights worth remembering:
 - Expression-bodied properties/indexers/accessors required; methods and
   constructors stay block-bodied.
 - Pattern matching preferred over `is`-cast / `as`-null-check (error).
-- CA1040 (empty interfaces) is disabled because of CQRS marker
-  interfaces — that exemption is intentional, do not re-enable.
+- CA1040 (empty interfaces) is disabled. The original justification
+  was CQRS marker interfaces; Wolverine does not require them
+  (ADR-0008), so the exemption is dormant rather than load-bearing.
+  Leave it disabled — re-enabling is out of scope for the Wolverine
+  migration and would need its own ADR.
 - Several CA/Sonar rules are downgraded to `suggestion` for incremental
   cleanup. Do not silence new rules without an ADR.
 
@@ -313,10 +353,13 @@ these before proposing changes that touch any of these areas:
 | 0001 | Record architecture decisions                                | Use MADR short form, numbered, in `docs/adr/`           |
 | 0002 | Adopt Clean Architecture and Modular Monolith                | Per-module `Domain/Application/Infrastructure/Api`      |
 | 0003 | Use DDD building blocks inside each module                   | Entities, value objects, aggregates, repositories       |
-| 0004 | CQRS as application pattern, dispatched via Kommand          | One folder per use case; thin handlers; Kommand library |
+| 0004 | ~~CQRS as application pattern, dispatched via Kommand~~      | Superseded by ADR-0008 (Wolverine)                      |
 | 0005 | Entity Framework Core for persistence, one DbContext / module| Per-module `DbContext`, migrations and configurations   |
 | 0006 | Use `Result<T>` for expected failures                        | No exceptions for validation/not-found/conflict         |
 | 0007 | Use RFC 7807 `ProblemDetails` for HTTP error responses       | Single error format, mapped from `Error.Category`       |
+| 0008 | CQRS dispatched via Wolverine (supersedes ADR-0004)          | WolverineFx for CQRS + in-process messaging; no markers |
+| 0009 | Serilog for structured logging                               | `Serilog.AspNetCore` + Console / File / Seq sinks       |
+| 0010 | Use UUIDv7 (Guid v7) for aggregate identifiers               | `GuidV7.NewGuid()` today; `Guid.CreateVersion7()` on net9+ |
 
 When you write the next ADR, increment the number, add a row to this
 table in the same PR, and link it from any related sections above.

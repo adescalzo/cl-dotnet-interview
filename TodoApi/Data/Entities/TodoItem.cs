@@ -1,4 +1,6 @@
-namespace TodoApi.Models;
+using TodoApi.Infrastructure.Persistence;
+
+namespace TodoApi.Data.Entities;
 
 public class TodoItem
 {

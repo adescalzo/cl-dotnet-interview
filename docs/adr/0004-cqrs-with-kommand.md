@@ -1,6 +1,6 @@
 # 0004 - CQRS as application pattern, dispatched via Kommand
 
-- Status: accepted
+- Status: superseded by ADR-0008
 - Date: 2026-04-19
 - Deciders: TodoApi team
 

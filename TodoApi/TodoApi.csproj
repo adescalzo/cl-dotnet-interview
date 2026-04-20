@@ -5,6 +5,19 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <!--<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" />-->
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Sinks.Seq" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="WolverineFx" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Infrastructure\Persistence\" />
+    <Folder Include="Infrastructure\Repositories\" />
+    <Folder Include="Infrastructure\RR\" />
+    <Folder Include="Infrastructure\using Zea.Persistence.Repositories.Queries%3b\" />
   </ItemGroup>
 </Project>
