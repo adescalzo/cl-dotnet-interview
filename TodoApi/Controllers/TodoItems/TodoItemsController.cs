@@ -6,7 +6,7 @@ using TodoApi.Data.Entities;
 
 namespace TodoApi.Controllers.TodoItems;
 
-[Route("api/todolists/{tlid:long}/todoitems")]
+[Route("api/todolists/{tlid:guid}/todoitems")]
 [ApiController]
 public class TodoItemsController : ControllerBase
 {
@@ -19,7 +19,7 @@ public class TodoItemsController : ControllerBase
 
     // GET: api/todolists/5/todoitems
     [HttpGet]
-    public async Task<ActionResult<IList<TodoItem>>> GetTodoItems(long tlid)
+    public async Task<ActionResult<IList<TodoItem>>> GetTodoItems(Guid tlid)
     {
         var todoList = await _context.TodoItem.Where(x => x.TodoListId == tlid).ToListAsync();
 
@@ -28,7 +28,7 @@ public class TodoItemsController : ControllerBase
 
     // GET: api/todolists/5/todoitems/1
     [HttpGet("{id}")]
-    public async Task<ActionResult<TodoItem>> GetTodoItem(long tlid, long id)
+    public async Task<ActionResult<TodoItem>> GetTodoItem(Guid tlid, long id)
     {
         var todoItem = await _context.TodoItem.FirstOrDefaultAsync(x =>
             x.Id == id && x.TodoListId == tlid
@@ -44,7 +44,7 @@ public class TodoItemsController : ControllerBase
 
     // POST: api/todolists/5/todoitems
     [HttpPost]
-    public async Task<ActionResult<TodoItem>> PostTodoItem(long tlid, CreateTodoItem payload)
+    public async Task<ActionResult<TodoItem>> PostTodoItem(Guid tlid, CreateTodoItem payload)
     {
         var todoList = await _context.TodoList.FindAsync(tlid);
 
@@ -68,7 +68,7 @@ public class TodoItemsController : ControllerBase
 
     // PUT: api/todolists/5/todoitems/1
     [HttpPut("{id}")]
-    public async Task<ActionResult<TodoItem>> PutTodoItem(long tlid, long id, UpdateTodoItem payload)
+    public async Task<ActionResult<TodoItem>> PutTodoItem(Guid tlid, long id, UpdateTodoItem payload)
     {
         var todoItem = await _context.TodoItem.FirstOrDefaultAsync(x =>
             x.Id == id && x.TodoListId == tlid
@@ -88,7 +88,7 @@ public class TodoItemsController : ControllerBase
 
     // DELETE: api/todolists/5/todoitems/1
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteTodoItem(long tlid, long id)
+    public async Task<ActionResult> DeleteTodoItem(Guid tlid, long id)
     {
         var todoItem = await _context.TodoItem.FirstOrDefaultAsync(x =>
             x.Id == id && x.TodoListId == tlid

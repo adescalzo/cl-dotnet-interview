@@ -12,7 +12,9 @@
     <PackageReference Include="Serilog.Sinks.File" />
     <PackageReference Include="Serilog.Sinks.Seq" />
     <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="WolverineFx" />
+    <PackageReference Include="WolverineFx.FluentValidation" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Infrastructure\Persistence\" />

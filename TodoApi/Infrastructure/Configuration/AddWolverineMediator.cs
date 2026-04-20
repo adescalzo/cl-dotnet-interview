@@ -1,4 +1,5 @@
 using System.Reflection;
+using FluentValidation;
 using Wolverine;
 using TodoApi.Infrastructure.Mediator;
 
@@ -19,23 +20,15 @@ public static class WolverineExtensions
     /// <returns>Service collection for chaining</returns>
     public static IServiceCollection AddWolverineMediator(this IServiceCollection services, Assembly applicationAssembly)
     {
-        // Disable automatic extension discovery to prevent scanning build tools and other non-relevant assemblies
-        // See: https://wolverinefx.net/guide/extensions.html#disabling-assembly-scanning
+        services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
+
         services.AddWolverine(ExtensionDiscovery.ManualOnly, opts =>
         {
-            // Auto-discover all handlers from Application assembly
-            // Handlers follow convention: public class XxxHandler { public YYY Handle(XXX message) { ... } }
             opts.Discovery.IncludeAssembly(applicationAssembly);
 
-            // Apply logging middleware to All handlers
+            opts.Policies.AddMiddleware(typeof(ValidationMiddleware));
             opts.Policies.AddMiddleware<LoggingMiddleware>();
-
-            // Apply transaction middleware to All handlers
             opts.Policies.AddMiddleware<TransactionMiddleware>();
-
-            // Optional: Configure additional Wolverine settings
-            // opts.Durability.Mode = DurabilityMode.Solo; // For outbox pattern (future)
-            // opts.LocalQueue("important").MaximumParallelMessages(5); // For background processing
         });
 
         return services;

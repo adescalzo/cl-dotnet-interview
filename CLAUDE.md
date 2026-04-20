@@ -29,8 +29,8 @@ dotnet run --project TodoApi
 dotnet test
 
 # Single test class / method
-dotnet test --filter "FullyQualifiedName~TodoListsControllerTests"
-dotnet test --filter "FullyQualifiedName~TodoListsControllerTests.GetTodoList_WhenCalled_ReturnsTodoListList"
+dotnet test --filter "FullyQualifiedName~CreateTodoListHandlerTests"
+dotnet test --filter "FullyQualifiedName~CreateTodoListHandlerTests.Handle_WhenCalled_ShouldPersistTodoListAndReturnResponse"
 
 # Format (CSharpier)
 dotnet csharpier .
@@ -152,7 +152,7 @@ Conventions:
 - Cross-cutting concerns use **Wolverine middleware**:
   - FluentValidation via `WolverineFx.FluentValidation`, wired so that
     validator failures become a `Result` with
-    `Error.Category = Validation`. Do **not** throw `ValidationException`
+    `Error.Definition = Validation`. Do **not** throw `ValidationException`
     from handlers or middleware (ADR-0006).
   - Transactions via Wolverine's `TransactionalMiddleware` /
     `[Transactional]` once a handler crosses aggregates.
@@ -186,9 +186,9 @@ Conventions:
 - Enable framework support in `Program.cs` via `AddProblemDetails`,
   `UseExceptionHandler`, `UseStatusCodePages`. Do not hand-roll
   middleware that duplicates that.
-- A single shared helper (`result.ToActionResult()` for controllers /
-  `result.ToHttpResult()` for Minimal APIs) maps
-  `Result.Error.Category` → HTTP status:
+- Shared helpers in `TodoApi.Infrastructure.Extensions.ResultExtensions`
+  (`.ToOk()`, `.ToCreated()`, `.ToNoContent()`, `.ToProblemDetails()`)
+  map `Result.Error.Definition` → HTTP status:
   `Validation`→400, `Unauthorized`→401, `Forbidden`→403,
   `NotFound`→404, `Conflict`→409, `Unexpected`→500.
 - Body fields: `type` (stable URI per error code, even if it does not
@@ -226,6 +226,25 @@ File / Seq sinks). See ADR-0009. Highlights:
   Serilog types outside the composition root.
 - Do **not** log request/response bodies by default. Adding
   per-endpoint body logging requires explicit scope + redaction.
+
+### Testing
+
+Unit-test conventions for handlers and validators live in ADR-0011.
+Highlights:
+
+- Handler tests inherit `AsyncLifetimeBase` (EF Core `InMemory`) and
+  construct the real handler against the real `DbContext` and
+  repository — no mocked repositories. Outbound ports (e.g. `IClock`)
+  are stubbed via `NSubstitute`.
+- Test subjects are built through immutable `IBuilder<T>`
+  implementations backed by `Bogus` (`TodoListBuilder`,
+  `TodoItemBuilder`).
+- Validator tests use `FluentValidation.TestHelper` directly — no base
+  class.
+- Assertions use `FluentAssertions` (v6). Naming:
+  `Method_WhenCondition_ShouldOutcome`.
+- Integration tests over HTTP live in `crunchloop/interview-tests` and
+  are not duplicated in this repo.
 
 ### Patterns: use them where they pay rent
 
@@ -360,6 +379,7 @@ these before proposing changes that touch any of these areas:
 | 0008 | CQRS dispatched via Wolverine (supersedes ADR-0004)          | WolverineFx for CQRS + in-process messaging; no markers |
 | 0009 | Serilog for structured logging                               | `Serilog.AspNetCore` + Console / File / Seq sinks       |
 | 0010 | Use UUIDv7 (Guid v7) for aggregate identifiers               | `GuidV7.NewGuid()` today; `Guid.CreateVersion7()` on net9+ |
+| 0011 | Unit testing conventions for handlers and validators         | Bogus + immutable Builders + `AsyncLifetimeBase` (EF InMemory) |
 
 When you write the next ADR, increment the number, add a row to this
 table in the same PR, and link it from any related sections above.

@@ -28,6 +28,12 @@ public class TodoList : Entity, IAuditable, ISynchronizable
 
     public DateTime? SynchronizedAt { get; private set; }
 
+    public void Update(string name, DateTime updatedAt)
+    {
+        Name = name;
+        UpdatedAt = updatedAt;
+    }
+
     public void AddItem(TodoItem item, DateTime updatedAt)
     {
         Items.Add(item);
