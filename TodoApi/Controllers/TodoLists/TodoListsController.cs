@@ -4,7 +4,7 @@ using TodoApi.Data;
 using TodoApi.Dtos;
 using TodoApi.Data.Entities;
 
-namespace TodoApi.Controllers
+namespace TodoApi.Controllers.TodoLists
 {
     [Route("api/todolists")]
     [ApiController]
