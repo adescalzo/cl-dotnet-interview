@@ -6,7 +6,7 @@ using TodoApi.Infrastructure.Persistence;
 namespace TodoApi.Application.Commands.UpdateTodoItem;
 
 public sealed class UpdateTodoItemHandler(
-    IRepositoryCommand<TodoList> repository,
+    ITodoListRepositoryCommand repository,
     IClock clock,
     ILogger<UpdateTodoItemHandler> logger
 )
@@ -36,6 +36,13 @@ public sealed class UpdateTodoItemHandler(
         {
             return Result.Failure<UpdateTodoItemResponse>(
                 ErrorResult.NotFound(nameof(TodoItem), command.ItemId.ToString())
+            );
+        }
+
+        if (item.IsComplete)
+        {
+            return Result.Failure<UpdateTodoItemResponse>(
+                ErrorResult.Conflict(nameof(TodoItem), "Item is already completed.")
             );
         }
 

@@ -22,43 +22,58 @@ public sealed class DeleteTodoListHandlerTests : AsyncLifetimeBase
 
         _handler = new DeleteTodoListHandler(
             new TodoListCommandRepository(Context),
+            Clock,
             NullLogger<DeleteTodoListHandler>.Instance
         );
     }
 
     [Fact]
-    public async Task Handle_WhenTodoListExists_ShouldRemoveRowAndReturnSuccess()
+    public async Task Handle_WhenTodoListExists_ShouldMarkAsDeletedAndReturnSuccess()
     {
-        // Arrange
         var command = new DeleteTodoListCommand(_seeded.Id);
 
-        // Act
         var result = await _handler.Handle(command, CancellationToken.None);
         await SaveChangesAsync();
 
-        // Assert
         result.IsSuccess.Should().BeTrue();
 
-        var exists = await Context.TodoList.AsNoTracking().AnyAsync(x => x.Id == _seeded.Id);
-        exists.Should().BeFalse();
+        var persisted = await Context
+            .TodoList.IgnoreQueryFilters()
+            .AsNoTracking()
+            .SingleAsync(x => x.Id == _seeded.Id);
+        persisted.IsDeleted.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_WhenTodoListHasItems_ShouldMarkItemsAsDeletedToo()
+    {
+        var item = _seeded.AddItem("Buy milk", UtcNow);
+        await SaveChangesAsync();
+
+        var command = new DeleteTodoListCommand(_seeded.Id);
+        await _handler.Handle(command, CancellationToken.None);
+        await SaveChangesAsync();
+
+        var persistedItem = await Context
+            .TodoItem.IgnoreQueryFilters()
+            .AsNoTracking()
+            .SingleAsync(x => x.Id == item.Id);
+        persistedItem.IsDeleted.Should().BeTrue();
     }
 
     [Fact]
     public async Task Handle_WhenTodoListDoesNotExist_ShouldReturnNotFound()
     {
-        // Arrange
-        var missingId = Guid.NewGuid();
-        var command = new DeleteTodoListCommand(missingId);
+        var command = new DeleteTodoListCommand(Guid.NewGuid());
 
-        // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
-        // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Definition.Should().Be(ErrorDefinition.NotFound);
 
         var seededStillThere = await Context
-            .TodoList.AsNoTracking()
+            .TodoList.IgnoreQueryFilters()
+            .AsNoTracking()
             .AnyAsync(x => x.Id == _seeded.Id);
         seededStillThere.Should().BeTrue();
     }

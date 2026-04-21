@@ -12,6 +12,7 @@ public class TodoListConfiguration : IEntityTypeConfiguration<TodoList>
 
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Name).IsRequired().HasMaxLength(200);
+        builder.Property(t => t.CreatedAt).IsRequired().ValueGeneratedNever();
 
         builder
             .HasMany(t => t.Items)
@@ -22,5 +23,7 @@ public class TodoListConfiguration : IEntityTypeConfiguration<TodoList>
         builder
             .Metadata.FindNavigation(nameof(TodoList.Items))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasQueryFilter(t => !t.IsDeleted);
     }
 }

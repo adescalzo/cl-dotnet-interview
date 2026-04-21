@@ -9,25 +9,22 @@ namespace TodoApi.Application.Commands.CreateTodoList;
 /// Wolverine convention: public class with Handle method matching command type.
 /// </summary>
 public sealed class CreateTodoListHandler(
-    IRepositoryCommand<TodoList> repository,
+    ITodoListRepositoryCommand repository,
     IClock clock,
     ILogger<CreateTodoListHandler> logger
 )
 {
-    public async Task<Result<CreateTodoListResponse>> Handle(
-        CreateTodoListCommand command,
-        CancellationToken ct
-    )
+    public async Task<Result<CreateTodoListResponse>> Handle(CreateTodoListCommand command, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(command);
 
         var todoList = new TodoList(command.Name, clock.UtcNow);
-
         await repository.AddAsync(todoList, ct).ConfigureAwait(false);
 
         logger.LogTodoListCreated(todoList.Id, todoList.Name);
 
         var response = new CreateTodoListResponse(todoList.Id, todoList.Name, todoList.CreatedAt);
+
         return Result.Success(response);
     }
 }

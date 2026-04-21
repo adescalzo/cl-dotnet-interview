@@ -2,27 +2,28 @@ using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Data.Entities;
 
-public class TodoList : Entity, IAuditable, ISynchronizable
+public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
 {
     private readonly List<TodoItem> _items = [];
 
     private TodoList()
     {
         Name = string.Empty;
-        CreatedAt = DateTime.UtcNow;
     }
 
     public TodoList(string name, DateTime createdAt)
     {
         Name = name;
         CreatedAt = createdAt;
+        IsSynchronized = false;
+        IsDeleted = false;
     }
 
     public string Name { get; private set; }
 
     public IReadOnlyCollection<TodoItem> Items => _items;
 
-    public DateTime CreatedAt { get; }
+    public DateTime CreatedAt { get; private set; }
 
     public DateTime? UpdatedAt { get; private set; }
 
@@ -30,17 +31,23 @@ public class TodoList : Entity, IAuditable, ISynchronizable
 
     public DateTime? SynchronizedAt { get; private set; }
 
+    public bool IsDeleted { get; private set; }
+
     public void Update(string name, DateTime updatedAt)
     {
         Name = name;
         UpdatedAt = updatedAt;
+        IsSynchronized = false;
     }
 
     public TodoItem AddItem(string name, DateTime updatedAt)
     {
         var item = new TodoItem(name, Id);
+
         _items.Add(item);
         UpdatedAt = updatedAt;
+        IsSynchronized = false;
+
         return item;
     }
 
@@ -54,6 +61,8 @@ public class TodoList : Entity, IAuditable, ISynchronizable
 
         item.Rename(name);
         UpdatedAt = updatedAt;
+        IsSynchronized = false;
+
         return item;
     }
 
@@ -67,6 +76,8 @@ public class TodoList : Entity, IAuditable, ISynchronizable
 
         item.Complete();
         UpdatedAt = updatedAt;
+        IsSynchronized = false;
+
         return item;
     }
 
@@ -78,8 +89,10 @@ public class TodoList : Entity, IAuditable, ISynchronizable
             return false;
         }
 
-        _items.Remove(item);
+        item.MarkAsDeleted(updatedAt);
         UpdatedAt = updatedAt;
+        IsSynchronized = false;
+
         return true;
     }
 
@@ -87,5 +100,17 @@ public class TodoList : Entity, IAuditable, ISynchronizable
     {
         IsSynchronized = true;
         SynchronizedAt = synchronizedAt;
+    }
+
+    public void MarkAsDeleted(DateTime deletedAt)
+    {
+        IsDeleted = true;
+        UpdatedAt = deletedAt;
+        IsSynchronized = false;
+
+        foreach (var item in _items)
+        {
+            item.MarkAsDeleted(deletedAt);
+        }
     }
 }

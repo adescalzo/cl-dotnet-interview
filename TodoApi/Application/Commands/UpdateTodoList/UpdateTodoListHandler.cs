@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
 using TodoApi.Infrastructure.Persistence;
@@ -6,7 +5,7 @@ using TodoApi.Infrastructure.Persistence;
 namespace TodoApi.Application.Commands.UpdateTodoList;
 
 public sealed class UpdateTodoListHandler(
-    IRepositoryCommand<TodoList> repository,
+    ITodoListRepositoryCommand repository,
     IClock clock,
     ILogger<UpdateTodoListHandler> logger
 )

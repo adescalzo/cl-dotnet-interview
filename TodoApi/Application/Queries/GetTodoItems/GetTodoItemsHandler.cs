@@ -4,12 +4,9 @@ using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Queries.GetTodoItems;
 
-public sealed class GetTodoItemsHandler(IRepositoryQuery<TodoList> repository)
+public sealed class GetTodoItemsHandler(ITodoListRepositoryQuery repository)
 {
-    public async Task<Result<GetTodoItemsResponse>> Handle(
-        GetTodoItemsQuery query,
-        CancellationToken ct
-    )
+    public async Task<Result<GetTodoItemsResponse>> Handle(GetTodoItemsQuery query, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -25,10 +22,13 @@ public sealed class GetTodoItemsHandler(IRepositoryQuery<TodoList> repository)
             )
             .ConfigureAwait(false);
 
-        return response is null
-            ? Result.Failure<GetTodoItemsResponse>(
+        if (response is null)
+        {
+            return Result.Failure<GetTodoItemsResponse>(
                 ErrorResult.NotFound(nameof(TodoList), query.TodoListId.ToString())
-            )
-            : Result.Success(response);
+            );
+        }
+
+        return Result.Success(response);
     }
 }

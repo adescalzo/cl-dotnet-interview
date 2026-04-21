@@ -6,15 +6,12 @@ using TodoApi.Infrastructure.Persistence;
 namespace TodoApi.Application.Commands.AddTodoItem;
 
 public sealed class AddTodoItemHandler(
-    IRepositoryCommand<TodoList> repository,
+    ITodoListRepositoryCommand repository,
     IClock clock,
     ILogger<AddTodoItemHandler> logger
 )
 {
-    public async Task<Result<AddTodoItemResponse>> Handle(
-        AddTodoItemCommand command,
-        CancellationToken ct
-    )
+    public async Task<Result<AddTodoItemResponse>> Handle(AddTodoItemCommand command, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -35,9 +32,7 @@ public sealed class AddTodoItemHandler(
 
         logger.LogTodoItemAdded(todoList.Id, item.Name);
 
-        return Result.Success(
-            new AddTodoItemResponse(todoList.Id, item.Name, item.IsComplete)
-        );
+        return Result.Success(new AddTodoItemResponse(todoList.Id, item.Name, item.IsComplete));
     }
 }
 

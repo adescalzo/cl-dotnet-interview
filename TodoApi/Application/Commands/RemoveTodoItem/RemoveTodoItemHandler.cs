@@ -6,7 +6,7 @@ using TodoApi.Infrastructure.Persistence;
 namespace TodoApi.Application.Commands.RemoveTodoItem;
 
 public sealed class RemoveTodoItemHandler(
-    IRepositoryCommand<TodoList> repository,
+    ITodoListRepositoryCommand repository,
     IClock clock,
     ILogger<RemoveTodoItemHandler> logger
 )

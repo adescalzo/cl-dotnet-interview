@@ -51,8 +51,8 @@ dotnet test --filter "FullyQualifiedName~CreateTodoListHandlerTests.Handle_WhenC
 dotnet csharpier .
 
 # EF Core migrations (run from repo root; project flag points at the API)
-dotnet ef migrations add <Name> --project TodoApi
-dotnet ef database update --project TodoApi
+ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add <Name> --project TodoApi
+ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project TodoApi
 ```
 
 ## Treat the existing code as starter scaffolding, not a base

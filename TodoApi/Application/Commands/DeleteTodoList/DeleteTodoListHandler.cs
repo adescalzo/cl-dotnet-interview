@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
@@ -6,7 +7,8 @@ using TodoApi.Infrastructure.Persistence;
 namespace TodoApi.Application.Commands.DeleteTodoList;
 
 public sealed class DeleteTodoListHandler(
-    IRepositoryCommand<TodoList> repository,
+    ITodoListRepositoryCommand repository,
+    IClock clock,
     ILogger<DeleteTodoListHandler> logger
 )
 {
@@ -14,13 +16,18 @@ public sealed class DeleteTodoListHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var todoList = await repository.GetByIdAsync(command.Id, ct: ct).ConfigureAwait(false);
+        var todoList = await repository
+            .GetQueryable(ct: ct)
+            .Include(l => l.Items)
+            .FirstOrDefaultAsync(l => l.Id == command.Id, ct)
+            .ConfigureAwait(false);
+
         if (todoList is null)
         {
             return Result.Failure(ErrorResult.NotFound(nameof(TodoList), command.Id.ToString()));
         }
 
-        repository.Remove(todoList);
+        todoList.MarkAsDeleted(clock.UtcNow);
 
         logger.LogTodoListDeleted(command.Id);
 

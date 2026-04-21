@@ -13,11 +13,11 @@
     <PackageReference Include="Serilog.Sinks.Seq" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Scrutor" />
     <PackageReference Include="WolverineFx" />
     <PackageReference Include="WolverineFx.FluentValidation" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Infrastructure\Persistence\" />
-    <Folder Include="Infrastructure\Repositories\" />
   </ItemGroup>
 </Project>

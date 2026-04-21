@@ -1,11 +1,12 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
 using TodoApi.Data;
 using TodoApi.Infrastructure.Configuration;
 using TodoApi.Infrastructure.Hubs;
+using TodoApi.Infrastructure.Middleware;
 using TodoApi.Infrastructure.Persistence;
 
 // Bootstrap logging
@@ -35,13 +36,14 @@ try
     builder.Services.AddProblemDetailsConfiguration();
 
     // Persistency and Infrastructure
+    builder.Services.AddInfrastructure();
+    builder.Services.AddPersistence(builder.Configuration);
 
-    builder
-        .Services.AddDbContext<TodoContext>(opt =>
-            opt.UseSqlServer(builder.Configuration.GetConnectionString("TodoContext"))
-        )
+    builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+    builder.Services
         .AddEndpointsApiExplorer()
-        .AddControllers();
+        .AddControllers(options => options.Filters.Add<RequestValidationFilter>());
 
     // Mediator (Wolverine)
     builder.Services.AddWolverineMediator(typeof(IUnitOfWork).Assembly);

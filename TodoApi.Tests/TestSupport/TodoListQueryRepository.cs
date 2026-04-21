@@ -12,7 +12,7 @@ namespace TodoApi.Tests.TestSupport;
 /// Only the methods exercised by the query handlers are backed; the rest throw
 /// so that accidental use in a test is loud.
 /// </summary>
-internal sealed class TodoListQueryRepository(TodoContext context) : IRepositoryQuery<TodoList>
+internal sealed class TodoListQueryRepository(TodoContext context) : ITodoListRepositoryQuery
 {
     public async Task<TodoList?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         await context.TodoList.FirstOrDefaultAsync(x => x.Id == id, ct).ConfigureAwait(false);

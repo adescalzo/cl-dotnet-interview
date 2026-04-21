@@ -25,23 +25,20 @@ public static class PersistenceExtensions
             opt.EnableSensitiveDataLogging();
         });
 
-        // Automatically register all query repositories
-        // Scans for classes in the same namespace as FeeRepositoryQuery
-        /*
+        // Scan for all concrete repository implementations (one per aggregate root).
+        // Scrutor picks up closed types implementing IRepositoryCommand<> / IRepositoryQuery<>
+        // and registers them against their interfaces. Open-generic base classes are skipped.
         services.Scan(scan => scan
-            .FromAssemblyOf<FeeRepositoryQuery>()
-            .AddClasses(classes => classes.InNamespaceOf<FeeRepositoryQuery>())
+            .FromAssemblyOf<TodoListRepositoryCommand>()
+            .AddClasses(classes => classes.AssignableTo(typeof(IRepositoryCommand<>)))
             .AsImplementedInterfaces()
             .WithScopedLifetime());
 
-        // Automatically register all command repositories
-        // Scans for classes in the same namespace as FeeRepositoryCommand
         services.Scan(scan => scan
-            .FromAssemblyOf<FeeRepositoryCommand>()
-            .AddClasses(classes => classes.InNamespaceOf<FeeRepositoryCommand>())
+            .FromAssemblyOf<TodoListRepositoryQuery>()
+            .AddClasses(classes => classes.AssignableTo(typeof(IRepositoryQuery<>)))
             .AsImplementedInterfaces()
             .WithScopedLifetime());
-        */
 
         return services;
     }

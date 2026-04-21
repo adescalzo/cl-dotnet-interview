@@ -49,8 +49,11 @@ public sealed class RemoveTodoItemHandlerTests : AsyncLifetimeBase
         // Assert
         result.IsSuccess.Should().BeTrue();
 
-        var exists = await Context.TodoItem.AsNoTracking().AnyAsync(x => x.Id == _seededItem.Id);
-        exists.Should().BeFalse();
+        var persisted = await Context
+            .TodoItem.IgnoreQueryFilters()
+            .AsNoTracking()
+            .SingleAsync(x => x.Id == _seededItem.Id);
+        persisted.IsDeleted.Should().BeTrue();
 
         var persistedList = await Context
             .TodoList.AsNoTracking()

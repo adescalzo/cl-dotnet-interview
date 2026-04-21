@@ -1,10 +1,10 @@
 using FluentValidation;
 
-namespace TodoApi.Application.Commands.CreateTodoList;
+namespace TodoApi.Controllers.TodoLists.Commands;
 
-public sealed class CreateTodoListCommandValidator : AbstractValidator<CreateTodoListCommand>
+public sealed class UpdateTodoListRequestValidator : AbstractValidator<UpdateTodoListRequest>
 {
-    public CreateTodoListCommandValidator()
+    public UpdateTodoListRequestValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty()
