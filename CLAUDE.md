@@ -405,6 +405,10 @@ these before proposing changes that touch any of these areas:
 | 0009 | Serilog for structured logging                               | `Serilog.AspNetCore` + Console / File / Seq sinks       |
 | 0010 | Use UUIDv7 (Guid v7) for aggregate identifiers               | `GuidV7.NewGuid()` today; `Guid.CreateVersion7()` on net9+ |
 | 0011 | Unit testing conventions for handlers and validators         | Bogus + immutable Builders + `AsyncLifetimeBase` (EF InMemory) |
+| 0012 | Background scheduling with Quartz.NET, SignalR, EF Core      | Quartz jobs, `IServiceScopeFactory`, `[DisallowConcurrentExecution]` |
+| 0013 | Refit for typed external HTTP clients                        | `IExternalTodoApiClient` interface, snake_case, 404-on-DELETE |
+| 0014 | Polly for HTTP resilience on external API calls              | Retry + circuit breaker on Refit `HttpClient`, per-entity isolation |
+| 0015 | Strategy pattern for sync event dispatch                     | One `ISyncEventStrategy` per `(EntityType, EventType)`, OCP-compliant |
 
 When you write the next ADR, increment the number, add a row to this
 table in the same PR, and link it from any related sections above.
