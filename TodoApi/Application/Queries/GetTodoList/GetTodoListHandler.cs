@@ -6,7 +6,10 @@ namespace TodoApi.Application.Queries.GetTodoList;
 
 public sealed class GetTodoListHandler(ITodoListRepositoryQuery repository)
 {
-    public async Task<Result<GetTodoListResponse>> Handle(GetTodoListQuery query, CancellationToken ct)
+    public async Task<Result<GetTodoListResponse>> Handle(
+        GetTodoListQuery query,
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(query);
 

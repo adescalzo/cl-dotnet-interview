@@ -3,9 +3,15 @@ using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Queries.GetTodoLists;
 
-public sealed class GetTodoListsHandler(ITodoListRepositoryQuery repository, ILogger<GetTodoListsHandler> logger)
+public sealed class GetTodoListsHandler(
+    ITodoListRepositoryQuery repository,
+    ILogger<GetTodoListsHandler> logger
+)
 {
-    public async Task<Result<GetTodoListsResponse>> Handle(GetTodoListsQuery query, CancellationToken ct)
+    public async Task<Result<GetTodoListsResponse>> Handle(
+        GetTodoListsQuery query,
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(query);
 

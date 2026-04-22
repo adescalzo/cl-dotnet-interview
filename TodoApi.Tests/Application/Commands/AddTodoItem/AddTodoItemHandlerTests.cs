@@ -22,6 +22,7 @@ public sealed class AddTodoItemHandlerTests : AsyncLifetimeBase
 
         _handler = new AddTodoItemHandler(
             new TodoListCommandRepository(Context),
+            new SyncEventCommandRepository(Context),
             Clock,
             NullLogger<AddTodoItemHandler>.Instance
         );
@@ -31,11 +32,11 @@ public sealed class AddTodoItemHandlerTests : AsyncLifetimeBase
     public async Task Handle_WhenTodoListExists_ShouldStageItemAndReturnResponse()
     {
         // Arrange
-        var command = new AddTodoItemCommand(_seeded.Id, "Milk");
+        var command = new AddTodoItemCommand(_seeded.Id, "Milk", 1);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
-        await SaveChangesAsync();
+        await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -45,13 +46,15 @@ public sealed class AddTodoItemHandlerTests : AsyncLifetimeBase
 
         var persisted = await Context
             .TodoItem.AsNoTracking()
-            .SingleAsync(x => x.TodoListId == _seeded.Id);
+            .SingleAsync(x => x.TodoListId == _seeded.Id)
+            .ConfigureAwait(false);
         persisted.Name.Should().Be("Milk");
         persisted.IsComplete.Should().BeFalse();
 
         var persistedList = await Context
             .TodoList.AsNoTracking()
-            .SingleAsync(x => x.Id == _seeded.Id);
+            .SingleAsync(x => x.Id == _seeded.Id)
+            .ConfigureAwait(false);
         persistedList.UpdatedAt.Should().Be(UtcNow);
     }
 
@@ -59,16 +62,19 @@ public sealed class AddTodoItemHandlerTests : AsyncLifetimeBase
     public async Task Handle_WhenTodoListDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
-        var command = new AddTodoItemCommand(Guid.NewGuid(), "Milk");
+        var command = new AddTodoItemCommand(Guid.NewGuid(), "Milk", 1);
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Definition.Should().Be(ErrorDefinition.NotFound);
 
-        var persistedItems = await Context.TodoItem.AsNoTracking().CountAsync();
+        var persistedItems = await Context
+            .TodoItem.AsNoTracking()
+            .CountAsync()
+            .ConfigureAwait(false);
         persistedItems.Should().Be(0);
     }
 }

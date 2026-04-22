@@ -36,13 +36,14 @@ try
     builder.Services.AddProblemDetailsConfiguration();
 
     // Persistency and Infrastructure
-    builder.Services.AddInfrastructure();
+    builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddPersistence(builder.Configuration);
+    builder.Services.AddQuartzScheduler();
 
     builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-    builder.Services
-        .AddEndpointsApiExplorer()
+    builder
+        .Services.AddEndpointsApiExplorer()
         .AddControllers(options => options.Filters.Add<RequestValidationFilter>());
 
     // Mediator (Wolverine)

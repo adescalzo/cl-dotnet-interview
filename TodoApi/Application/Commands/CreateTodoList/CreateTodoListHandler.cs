@@ -1,25 +1,29 @@
+using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
 using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Commands.CreateTodoList;
 
-/// <summary>
-/// Handler for creating a new TodoList aggregate.
-/// Wolverine convention: public class with Handle method matching command type.
-/// </summary>
 public sealed class CreateTodoListHandler(
     ITodoListRepositoryCommand repository,
+    ISyncEventRepository syncEvents,
     IClock clock,
     ILogger<CreateTodoListHandler> logger
 )
 {
-    public async Task<Result<CreateTodoListResponse>> Handle(CreateTodoListCommand command, CancellationToken ct)
+    public async Task<Result<CreateTodoListResponse>> Handle(
+        CreateTodoListCommand command,
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
         var todoList = new TodoList(command.Name, clock.UtcNow);
         await repository.AddAsync(todoList, ct).ConfigureAwait(false);
+
+        var syncEvent = new TodoListCreatedPayload(todoList.Id, todoList.Name);
+        await syncEvents.AddAsync(SyncEvent.TodoListCreated(syncEvent), ct).ConfigureAwait(false);
 
         logger.LogTodoListCreated(todoList.Id, todoList.Name);
 

@@ -1,7 +1,7 @@
 namespace TodoApi.Application.Commands.CompleteTodoItem;
 
 public sealed record CompleteTodoItemResponse(
-    long Id,
+    Guid Id,
     Guid TodoListId,
     string Name,
     bool IsComplete

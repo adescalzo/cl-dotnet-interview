@@ -3,13 +3,15 @@ using TodoApi.Data.Entities;
 
 namespace TodoApi.Data;
 
-public class TodoContext : DbContext
+public class TodoContext(DbContextOptions<TodoContext> options) : DbContext(options)
 {
-    public TodoContext(DbContextOptions<TodoContext> options) : base(options) { }
-
     public DbSet<TodoList> TodoList { get; set; }
 
     public DbSet<TodoItem> TodoItem { get; set; }
+
+    public DbSet<SyncEvent> SyncEvent { get; set; }
+
+    public DbSet<SyncMapping> SyncMapping { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

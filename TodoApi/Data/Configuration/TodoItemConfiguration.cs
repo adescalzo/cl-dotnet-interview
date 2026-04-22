@@ -11,8 +11,11 @@ public class TodoItemConfiguration : IEntityTypeConfiguration<TodoItem>
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.HasKey(t => t.Id);
+        builder.Property(t => t.Id).ValueGeneratedNever();
         builder.Property(t => t.Name).IsRequired().HasMaxLength(200);
         builder.Property(t => t.IsComplete).IsRequired();
+        builder.Property(t => t.Order).IsRequired();
+        builder.Property(t => t.CreatedAt).IsRequired().ValueGeneratedNever();
         builder.HasQueryFilter(t => !t.IsDeleted);
     }
 }

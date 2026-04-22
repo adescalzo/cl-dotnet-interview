@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
 using TodoApi.Infrastructure.Persistence;
@@ -7,6 +8,7 @@ namespace TodoApi.Application.Commands.UpdateTodoItem;
 
 public sealed class UpdateTodoItemHandler(
     ITodoListRepositoryCommand repository,
+    ISyncEventRepository syncEvents,
     IClock clock,
     ILogger<UpdateTodoItemHandler> logger
 )
@@ -46,6 +48,14 @@ public sealed class UpdateTodoItemHandler(
             );
         }
 
+        var syncEvent = new TodoItemUpdatedPayload(
+            item.Id,
+            todoList.Id,
+            item.Name,
+            item.IsComplete
+        );
+        await syncEvents.AddAsync(SyncEvent.TodoItemUpdated(syncEvent), ct).ConfigureAwait(false);
+
         logger.LogTodoItemUpdated(todoList.Id, item.Id, item.Name);
 
         return Result.Success(
@@ -65,7 +75,7 @@ internal static partial class UpdateTodoItemHandlerLoggerDefinition
     public static partial void LogTodoItemUpdated(
         this ILogger logger,
         Guid todoListId,
-        long itemId,
+        Guid itemId,
         string name
     );
 }

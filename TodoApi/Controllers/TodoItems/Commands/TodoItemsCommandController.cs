@@ -20,17 +20,17 @@ public class TodoItemsCommandController(IMessageBus bus) : ControllerBase
         CancellationToken ct
     )
     {
-        var command = new AddTodoItemCommand(listId, payload.Name);
+        var command = new AddTodoItemCommand(listId, payload.Name, payload.Order);
         var result = await bus.InvokeAsync<Result<AddTodoItemResponse>>(command, ct)
             .ConfigureAwait(false);
 
         return result.ToCreated(_ => Url.Link("GetTodoItems", new { listId }) ?? string.Empty);
     }
 
-    [HttpPut("{itemId:long}")]
+    [HttpPut("{itemId:guid}")]
     public async Task<IResult> PutTodoItem(
         Guid listId,
-        long itemId,
+        Guid itemId,
         UpdateTodoItemRequest payload,
         CancellationToken ct
     )
@@ -42,8 +42,8 @@ public class TodoItemsCommandController(IMessageBus bus) : ControllerBase
         return result.ToOk();
     }
 
-    [HttpPut("{itemId:long}/complete")]
-    public async Task<IResult> CompleteTodoItem(Guid listId, long itemId, CancellationToken ct)
+    [HttpPut("{itemId:guid}/complete")]
+    public async Task<IResult> CompleteTodoItem(Guid listId, Guid itemId, CancellationToken ct)
     {
         var command = new CompleteTodoItemCommand(listId, itemId);
         var result = await bus.InvokeAsync<Result<CompleteTodoItemResponse>>(command, ct)
@@ -52,8 +52,8 @@ public class TodoItemsCommandController(IMessageBus bus) : ControllerBase
         return result.ToOk();
     }
 
-    [HttpDelete("{itemId:long}")]
-    public async Task<IResult> DeleteTodoItem(Guid listId, long itemId, CancellationToken ct)
+    [HttpDelete("{itemId:guid}")]
+    public async Task<IResult> DeleteTodoItem(Guid listId, Guid itemId, CancellationToken ct)
     {
         var command = new RemoveTodoItemCommand(listId, itemId);
         var result = await bus.InvokeAsync<Result>(command, ct).ConfigureAwait(false);

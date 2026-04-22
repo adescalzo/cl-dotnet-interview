@@ -1,3 +1,3 @@
 namespace TodoApi.Application.Commands.AddTodoItem;
 
-public sealed record AddTodoItemCommand(Guid TodoListId, string Name);
+public sealed record AddTodoItemCommand(Guid TodoListId, string Name, int Order);

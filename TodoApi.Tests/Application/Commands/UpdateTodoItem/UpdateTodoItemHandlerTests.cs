@@ -31,6 +31,7 @@ public sealed class UpdateTodoItemHandlerTests : AsyncLifetimeBase
 
         _handler = new UpdateTodoItemHandler(
             new TodoListCommandRepository(Context),
+            new SyncEventCommandRepository(Context),
             Clock,
             NullLogger<UpdateTodoItemHandler>.Instance
         );
@@ -43,8 +44,8 @@ public sealed class UpdateTodoItemHandlerTests : AsyncLifetimeBase
         var command = new UpdateTodoItemCommand(_seededList.Id, _seededItem.Id, "Renamed");
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-        await SaveChangesAsync();
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
+        await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -54,12 +55,14 @@ public sealed class UpdateTodoItemHandlerTests : AsyncLifetimeBase
 
         var persistedItem = await Context
             .TodoItem.AsNoTracking()
-            .SingleAsync(x => x.Id == _seededItem.Id);
+            .SingleAsync(x => x.Id == _seededItem.Id)
+            .ConfigureAwait(false);
         persistedItem.Name.Should().Be("Renamed");
 
         var persistedList = await Context
             .TodoList.AsNoTracking()
-            .SingleAsync(x => x.Id == _seededList.Id);
+            .SingleAsync(x => x.Id == _seededList.Id)
+            .ConfigureAwait(false);
         persistedList.UpdatedAt.Should().Be(UtcNow);
     }
 
@@ -70,7 +73,7 @@ public sealed class UpdateTodoItemHandlerTests : AsyncLifetimeBase
         var command = new UpdateTodoItemCommand(Guid.NewGuid(), _seededItem.Id, "Renamed");
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -78,7 +81,8 @@ public sealed class UpdateTodoItemHandlerTests : AsyncLifetimeBase
 
         var persisted = await Context
             .TodoItem.AsNoTracking()
-            .SingleAsync(x => x.Id == _seededItem.Id);
+            .SingleAsync(x => x.Id == _seededItem.Id)
+            .ConfigureAwait(false);
         persisted.Name.Should().Be("Original");
     }
 
@@ -86,10 +90,10 @@ public sealed class UpdateTodoItemHandlerTests : AsyncLifetimeBase
     public async Task Handle_WhenItemDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
-        var command = new UpdateTodoItemCommand(_seededList.Id, 99999, "Renamed");
+        var command = new UpdateTodoItemCommand(_seededList.Id, Guid.NewGuid(), "Renamed");
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -97,7 +101,8 @@ public sealed class UpdateTodoItemHandlerTests : AsyncLifetimeBase
 
         var persisted = await Context
             .TodoItem.AsNoTracking()
-            .SingleAsync(x => x.Id == _seededItem.Id);
+            .SingleAsync(x => x.Id == _seededItem.Id)
+            .ConfigureAwait(false);
         persisted.Name.Should().Be("Original");
     }
 }

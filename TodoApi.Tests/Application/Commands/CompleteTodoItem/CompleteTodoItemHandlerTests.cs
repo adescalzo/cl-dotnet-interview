@@ -31,6 +31,7 @@ public sealed class CompleteTodoItemHandlerTests : AsyncLifetimeBase
 
         _handler = new CompleteTodoItemHandler(
             new TodoListCommandRepository(Context),
+            new SyncEventCommandRepository(Context),
             Clock,
             NullLogger<CompleteTodoItemHandler>.Instance
         );
@@ -43,8 +44,8 @@ public sealed class CompleteTodoItemHandlerTests : AsyncLifetimeBase
         var command = new CompleteTodoItemCommand(_seededList.Id, _seededItem.Id);
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-        await SaveChangesAsync();
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
+        await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -53,12 +54,14 @@ public sealed class CompleteTodoItemHandlerTests : AsyncLifetimeBase
 
         var persistedItem = await Context
             .TodoItem.AsNoTracking()
-            .SingleAsync(x => x.Id == _seededItem.Id);
+            .SingleAsync(x => x.Id == _seededItem.Id)
+            .ConfigureAwait(false);
         persistedItem.IsComplete.Should().BeTrue();
 
         var persistedList = await Context
             .TodoList.AsNoTracking()
-            .SingleAsync(x => x.Id == _seededList.Id);
+            .SingleAsync(x => x.Id == _seededList.Id)
+            .ConfigureAwait(false);
         persistedList.UpdatedAt.Should().Be(UtcNow);
     }
 
@@ -69,7 +72,7 @@ public sealed class CompleteTodoItemHandlerTests : AsyncLifetimeBase
         var command = new CompleteTodoItemCommand(Guid.NewGuid(), _seededItem.Id);
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -77,7 +80,8 @@ public sealed class CompleteTodoItemHandlerTests : AsyncLifetimeBase
 
         var persisted = await Context
             .TodoItem.AsNoTracking()
-            .SingleAsync(x => x.Id == _seededItem.Id);
+            .SingleAsync(x => x.Id == _seededItem.Id)
+            .ConfigureAwait(false);
         persisted.IsComplete.Should().BeFalse();
     }
 
@@ -85,10 +89,10 @@ public sealed class CompleteTodoItemHandlerTests : AsyncLifetimeBase
     public async Task Handle_WhenItemDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
-        var command = new CompleteTodoItemCommand(_seededList.Id, 99999);
+        var command = new CompleteTodoItemCommand(_seededList.Id, Guid.NewGuid());
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
 
         // Assert
         result.IsFailure.Should().BeTrue();

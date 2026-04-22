@@ -22,6 +22,7 @@ public sealed class UpdateTodoListHandlerTests : AsyncLifetimeBase
 
         _handler = new UpdateTodoListHandler(
             new TodoListCommandRepository(Context),
+            new SyncEventCommandRepository(Context),
             Clock,
             NullLogger<UpdateTodoListHandler>.Instance
         );
@@ -34,8 +35,8 @@ public sealed class UpdateTodoListHandlerTests : AsyncLifetimeBase
         var command = new UpdateTodoListCommand(_seeded.Id, "Renamed");
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-        await SaveChangesAsync();
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
+        await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -43,7 +44,10 @@ public sealed class UpdateTodoListHandlerTests : AsyncLifetimeBase
         result.GetValue.Name.Should().Be("Renamed");
         result.GetValue.UpdatedAt.Should().Be(UtcNow);
 
-        var persisted = await Context.TodoList.AsNoTracking().SingleAsync(x => x.Id == _seeded.Id);
+        var persisted = await Context
+            .TodoList.AsNoTracking()
+            .SingleAsync(x => x.Id == _seeded.Id)
+            .ConfigureAwait(false);
         persisted.Name.Should().Be("Renamed");
         persisted.UpdatedAt.Should().Be(UtcNow);
     }
@@ -56,13 +60,13 @@ public sealed class UpdateTodoListHandlerTests : AsyncLifetimeBase
         var command = new UpdateTodoListCommand(missingId, "Renamed");
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Definition.Should().Be(ErrorDefinition.NotFound);
 
-        var persisted = await Context.TodoList.AsNoTracking().SingleAsync();
+        var persisted = await Context.TodoList.AsNoTracking().SingleAsync().ConfigureAwait(false);
         persisted.Name.Should().Be("Original");
         persisted.UpdatedAt.Should().BeNull();
     }

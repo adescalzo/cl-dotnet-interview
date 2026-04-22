@@ -9,19 +9,26 @@ public class TodoItem : ISynchronizable, IDeletable
         Name = string.Empty;
     }
 
-    internal TodoItem(string name, Guid todoListId)
+    internal TodoItem(Guid id, string name, Guid todoListId, int order, DateTime createdAt)
     {
+        Id = id;
         Name = name;
         TodoListId = todoListId;
+        Order = order;
+        CreatedAt = createdAt;
         IsSynchronized = false;
         IsDeleted = false;
     }
 
-    public long Id { get; set; }
+    public Guid Id { get; private set; }
 
     public string Name { get; private set; }
 
     public bool IsComplete { get; private set; }
+
+    public int Order { get; private set; }
+
+    public DateTime CreatedAt { get; private set; }
 
     public Guid TodoListId { get; private set; }
 

@@ -5,4 +5,6 @@ namespace TodoApi.Infrastructure.Persistence;
 
 public interface ITodoListRepositoryCommand : IRepositoryCommand<TodoList>;
 
-public sealed class TodoListRepositoryCommand(TodoContext context) : RepositoryCommand<TodoList>(context), ITodoListRepositoryCommand;
+public sealed class TodoListRepositoryCommand(TodoContext context)
+    : RepositoryCommand<TodoList>(context),
+        ITodoListRepositoryCommand;

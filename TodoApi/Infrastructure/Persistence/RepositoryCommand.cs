@@ -28,7 +28,6 @@ public interface IRepositoryCommand<TEntity>
     Task<int> UpdateSaveChangesAsync(TEntity entity, CancellationToken ct = default);
 }
 
-
 /// <summary>
 /// Base class for command (write) repositories.
 /// Allows tracking for write operations.

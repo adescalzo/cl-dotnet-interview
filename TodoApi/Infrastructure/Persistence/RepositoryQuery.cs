@@ -54,7 +54,10 @@ public class RepositoryQuery<TEntity>(TodoContext context) : IRepositoryQuery<TE
     protected DbSet<TEntity> DbSetEntities => context.Set<TEntity>();
 
     public virtual async Task<TEntity?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
-        await DbSetEntities.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct).ConfigureAwait(false);
+        await DbSetEntities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, ct)
+            .ConfigureAwait(false);
 
     public virtual async Task<T?> GetByIdAsync<T>(
         Guid id,
@@ -71,8 +74,7 @@ public class RepositoryQuery<TEntity>(TodoContext context) : IRepositoryQuery<TE
     public virtual async Task<TEntity?> GetByAsync(
         Expression<Func<TEntity, bool>> filter,
         CancellationToken ct = default
-    ) =>
-        await DbSetEntities.AsNoTracking().FirstOrDefaultAsync(filter, ct).ConfigureAwait(false);
+    ) => await DbSetEntities.AsNoTracking().FirstOrDefaultAsync(filter, ct).ConfigureAwait(false);
 
     public virtual IQueryable<TEntity> GetQueryable() => DbSetEntities.AsNoTracking();
 
@@ -136,6 +138,5 @@ public class RepositoryQuery<TEntity>(TodoContext context) : IRepositoryQuery<TE
     public virtual async Task<bool> Any(
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken ct = default
-    ) =>
-        await DbSetEntities.AsNoTracking().AnyAsync(predicate, ct).ConfigureAwait(false);
+    ) => await DbSetEntities.AsNoTracking().AnyAsync(predicate, ct).ConfigureAwait(false);
 }

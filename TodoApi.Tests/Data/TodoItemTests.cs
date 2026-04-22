@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Data.Entities;
+using TodoApi.Infrastructure.Extensions;
 using TodoApi.Tests.Builders;
 using TodoApi.Tests.TestSupport;
 
@@ -21,7 +22,7 @@ public sealed class TodoItemTests : AsyncLifetimeBase
     public async Task AddItem_WhenSaved_ShouldPersistItemWithCorrectState()
     {
         // Act
-        _list.AddItem("Milk", UtcNow);
+        _list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
@@ -40,7 +41,7 @@ public sealed class TodoItemTests : AsyncLifetimeBase
     public async Task UpdateItem_WhenSaved_ShouldPersistRenamedItem()
     {
         // Arrange
-        var item = _list.AddItem("Milk", UtcNow);
+        var item = _list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -48,7 +49,10 @@ public sealed class TodoItemTests : AsyncLifetimeBase
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
-        var persisted = await Context.TodoItem.AsNoTracking().SingleAsync(x => x.Id == item.Id).ConfigureAwait(false);
+        var persisted = await Context
+            .TodoItem.AsNoTracking()
+            .SingleAsync(x => x.Id == item.Id)
+            .ConfigureAwait(false);
         persisted.Name.Should().Be("Oat Milk");
     }
 
@@ -56,8 +60,8 @@ public sealed class TodoItemTests : AsyncLifetimeBase
     public async Task RemoveItem_WhenSaved_ShouldPersistDeletedFlagOnItem()
     {
         // Arrange
-        var item = _list.AddItem("Milk", UtcNow);
-        await SaveChangesAsync();
+        var item = _list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
+        await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
         _list.RemoveItem(item.Id, UtcNow);

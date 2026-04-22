@@ -40,9 +40,9 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
         IsSynchronized = false;
     }
 
-    public TodoItem AddItem(string name, DateTime updatedAt)
+    public TodoItem AddItem(Guid id, string name, int order, DateTime createdAt, DateTime updatedAt)
     {
-        var item = new TodoItem(name, Id);
+        var item = new TodoItem(id, name, Id, order, createdAt);
 
         _items.Add(item);
         UpdatedAt = updatedAt;
@@ -51,7 +51,7 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
         return item;
     }
 
-    public TodoItem? UpdateItem(long itemId, string name, DateTime updatedAt)
+    public TodoItem? UpdateItem(Guid itemId, string name, DateTime updatedAt)
     {
         var item = _items.Find(i => i.Id == itemId);
         if (item is null)
@@ -66,7 +66,7 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
         return item;
     }
 
-    public TodoItem? CompleteItem(long itemId, DateTime updatedAt)
+    public TodoItem? CompleteItem(Guid itemId, DateTime updatedAt)
     {
         var item = _items.Find(i => i.Id == itemId);
         if (item is null)
@@ -81,7 +81,7 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
         return item;
     }
 
-    public bool RemoveItem(long itemId, DateTime updatedAt)
+    public bool RemoveItem(Guid itemId, DateTime updatedAt)
     {
         var item = _items.Find(i => i.Id == itemId);
         if (item is null)

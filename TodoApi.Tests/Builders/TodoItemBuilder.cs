@@ -1,5 +1,6 @@
 using Bogus;
 using TodoApi.Data.Entities;
+using TodoApi.Infrastructure.Extensions;
 using TodoApi.Tests.TestSupport;
 
 namespace TodoApi.Tests.Builders;
@@ -21,10 +22,18 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
     public TodoItemBuilder WithTodoListId(Guid todoListId) =>
         CloneWith(f => f.RuleFor(x => x.TodoListId, todoListId));
 
+    public TodoItemBuilder WithOrder(int order) => CloneWith(f => f.RuleFor(x => x.Order, order));
+
     public TodoItem Build()
     {
         var data = _faker.Generate();
-        var item = new TodoItem(data.Name, data.TodoListId);
+        var item = new TodoItem(
+            GuidV7.NewGuid(),
+            data.Name,
+            data.TodoListId,
+            data.Order,
+            DateTime.UtcNow
+        );
         if (data.IsComplete)
         {
             item.Complete();
@@ -47,7 +56,8 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
         new Faker<TodoItemData>()
             .RuleFor(x => x.Name, f => f.Lorem.Sentence(2))
             .RuleFor(x => x.IsComplete, f => f.Random.Bool())
-            .RuleFor(x => x.TodoListId, _ => Guid.NewGuid());
+            .RuleFor(x => x.TodoListId, _ => Guid.NewGuid())
+            .RuleFor(x => x.Order, f => f.Random.Int(1, 100));
 
     private sealed class TodoItemData
     {
@@ -56,5 +66,7 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
         public bool IsComplete { get; set; } = true;
 
         public Guid TodoListId { get; set; } = Guid.NewGuid();
+
+        public int Order { get; set; } = 1;
     }
 }

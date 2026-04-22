@@ -123,7 +123,7 @@ The same policy applies in the pull job: if a known external record has a newer 
 2. **External API: version or ETag field** — `updated_at` is a weak change detector. Two updates within the same second are indistinguishable.
 3. **External API: `updated_since` filter on GET** — avoids fetching the entire dataset on every pull cycle.
 4. **Conflict resolution policy** — currently fail-fast + manual. A "last local write wins" or "last external write wins" policy could be added as configuration.
-5. **`Failed` event auto-retry** — retry with a backoff counter rather than leaving events in `Failed` permanently.
+5. **`Failed` event attempt counter** — currently a `Failed` event stays in the table and is retried on every subsequent job run without a limit. Adding an `AttemptCount` field with a configurable max would allow marking events as permanently failed after N attempts, preventing indefinite retry loops. Not implemented in this version — the current behavior (keep retrying) is acceptable for the scope of this challenge.
 6. **Completed event pruning** — archive or delete old `Completed` events to keep the table small.
 7. **Pagination on external GET** — the current external API returns all records in one call. Not a problem now; would need pagination support for large datasets.
 

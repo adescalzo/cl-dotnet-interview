@@ -14,6 +14,7 @@ public sealed class CreateTodoListHandlerTests : AsyncLifetimeBase
     {
         _handler = new CreateTodoListHandler(
             new TodoListCommandRepository(Context),
+            new SyncEventCommandRepository(Context),
             Clock,
             NullLogger<CreateTodoListHandler>.Instance
         );
@@ -28,8 +29,8 @@ public sealed class CreateTodoListHandlerTests : AsyncLifetimeBase
         var command = new CreateTodoListCommand("Groceries");
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-        await SaveChangesAsync();
+        var result = await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);
+        await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -37,7 +38,7 @@ public sealed class CreateTodoListHandlerTests : AsyncLifetimeBase
         result.GetValue.CreatedAt.Should().Be(UtcNow);
         result.GetValue.Id.Should().NotBe(Guid.Empty);
 
-        var persisted = await Context.TodoList.AsNoTracking().SingleAsync();
+        var persisted = await Context.TodoList.AsNoTracking().SingleAsync().ConfigureAwait(false);
         persisted.Id.Should().Be(result.GetValue.Id);
         persisted.Name.Should().Be("Groceries");
     }

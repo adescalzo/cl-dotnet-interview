@@ -6,7 +6,10 @@ namespace TodoApi.Application.Queries.GetTodoItems;
 
 public sealed class GetTodoItemsHandler(ITodoListRepositoryQuery repository)
 {
-    public async Task<Result<GetTodoItemsResponse>> Handle(GetTodoItemsQuery query, CancellationToken ct)
+    public async Task<Result<GetTodoItemsResponse>> Handle(
+        GetTodoItemsQuery query,
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -15,7 +18,14 @@ public sealed class GetTodoItemsHandler(ITodoListRepositoryQuery repository)
                 query.TodoListId,
                 list => new GetTodoItemsResponse(
                     list.Id,
-                    list.Items.Select(i => new TodoItemResponse(i.Id, i.Name, i.IsComplete))
+                    list.Items.OrderBy(i => i.Order)
+                        .Select(i => new TodoItemResponse(
+                            i.Id,
+                            i.Name,
+                            i.IsComplete,
+                            i.Order,
+                            i.CreatedAt
+                        ))
                         .ToList()
                 ),
                 ct

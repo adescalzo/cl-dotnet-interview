@@ -314,6 +314,58 @@ Highlights worth remembering:
 - Several CA/Sonar rules are downgraded to `suggestion` for incremental
   cleanup. Do not silence new rules without an ADR.
 
+### Async conventions
+
+- Append `.ConfigureAwait(false)` to **every** `await` inside library /
+  application code (handlers, repositories, strategies, jobs, services).
+  This tells the runtime not to capture and resume on the original
+  `SynchronizationContext`, which avoids deadlocks in environments that
+  have one (e.g. older ASP.NET, UI frameworks, unit-test runners) and
+  removes a small allocation on every continuation.
+- The exception is test code and top-level `Program.cs` startup where
+  context capture is irrelevant or explicitly desired.
+- Do **not** omit `.ConfigureAwait(false)` to "keep the code shorter" —
+  it is a correctness and performance property, not style noise.
+
+### High-performance logging
+
+Use `[LoggerMessage]` source generation for every log call — never call
+`logger.LogInformation(...)` with a string literal or interpolation directly.
+
+```csharp
+internal static partial class MyHandlerLoggerDefinition
+{
+    [LoggerMessage(
+        EventId = 100,
+        Level = LogLevel.Information,
+        EventName = "TodoListCreated",
+        Message = "TodoList created - Id: {Id}, Name: {Name}"
+    )]
+    public static partial void LogTodoListCreated(this ILogger logger, Guid id, string name);
+}
+```
+
+Why:
+
+- The compiler generates the log method at build time, eliminating boxing,
+  string interpolation, and `params object[]` allocations on every call.
+- Enforces structured logging — message template parameters are strongly
+  typed in the generated code, not mixed with the message string at runtime.
+- `EventId` provides a stable, queryable identifier across log sinks.
+- `EventName` appears as a structured property, useful for filtering in Seq
+  or any structured log sink.
+
+Rules:
+
+- One `internal static partial class <HandlerName>LoggerDefinition` per
+  handler, placed at the bottom of the same file.
+- `EventId` values must be unique across the codebase — maintain a registry
+  in the handler files (100-series for TodoList, 500-series for TodoItem, etc.).
+- Do **not** use string interpolation (`$"..."`) or concatenation in log
+  messages; the template parameters handle structured values.
+- Pass the concrete `ILogger<T>` instance; the extension method accepts
+  `ILogger` so it works without casting.
+
 ### Package management
 
 - Versions live centrally in `Directory.Packages.props`

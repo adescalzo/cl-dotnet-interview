@@ -31,6 +31,7 @@ public sealed class RemoveTodoItemHandlerTests : AsyncLifetimeBase
 
         _handler = new RemoveTodoItemHandler(
             new TodoListCommandRepository(Context),
+            new SyncEventCommandRepository(Context),
             Clock,
             NullLogger<RemoveTodoItemHandler>.Instance
         );
@@ -82,7 +83,7 @@ public sealed class RemoveTodoItemHandlerTests : AsyncLifetimeBase
     public async Task Handle_WhenItemDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
-        var command = new RemoveTodoItemCommand(_seededList.Id, 99999);
+        var command = new RemoveTodoItemCommand(_seededList.Id, Guid.NewGuid());
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

@@ -1,3 +1,4 @@
+using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
 using TodoApi.Infrastructure.Persistence;
@@ -6,6 +7,7 @@ namespace TodoApi.Application.Commands.UpdateTodoList;
 
 public sealed class UpdateTodoListHandler(
     ITodoListRepositoryCommand repository,
+    ISyncEventRepository syncEvents,
     IClock clock,
     ILogger<UpdateTodoListHandler> logger
 )
@@ -26,6 +28,13 @@ public sealed class UpdateTodoListHandler(
         }
 
         todoList.Update(command.Name, clock.UtcNow);
+
+        await syncEvents
+            .AddAsync(
+                SyncEvent.TodoListUpdated(new TodoListUpdatedPayload(todoList.Id, todoList.Name)),
+                ct
+            )
+            .ConfigureAwait(false);
 
         logger.LogTodoListUpdated(todoList.Id, todoList.Name);
 

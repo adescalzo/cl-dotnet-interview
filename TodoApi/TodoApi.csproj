@@ -16,6 +16,10 @@
     <PackageReference Include="Scrutor" />
     <PackageReference Include="WolverineFx" />
     <PackageReference Include="WolverineFx.FluentValidation" />
+    <PackageReference Include="Quartz.Extensions.Hosting" />
+    <PackageReference Include="Refit" />
+    <PackageReference Include="Refit.HttpClientFactory" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Infrastructure\Persistence\" />

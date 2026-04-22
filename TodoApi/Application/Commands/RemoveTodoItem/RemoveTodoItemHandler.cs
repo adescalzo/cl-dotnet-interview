@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
 using TodoApi.Infrastructure.Persistence;
@@ -7,6 +8,7 @@ namespace TodoApi.Application.Commands.RemoveTodoItem;
 
 public sealed class RemoveTodoItemHandler(
     ITodoListRepositoryCommand repository,
+    ISyncEventRepository syncEvents,
     IClock clock,
     ILogger<RemoveTodoItemHandler> logger
 )
@@ -28,12 +30,23 @@ public sealed class RemoveTodoItemHandler(
             );
         }
 
+        var item = todoList.Items.FirstOrDefault(i => i.Id == command.ItemId);
         var removed = todoList.RemoveItem(command.ItemId, clock.UtcNow);
         if (!removed)
         {
             return Result.Failure(
                 ErrorResult.NotFound(nameof(TodoItem), command.ItemId.ToString())
             );
+        }
+
+        if (item is not null)
+        {
+            await syncEvents
+                .AddAsync(
+                    SyncEvent.TodoItemDeleted(new TodoItemDeletedPayload(item.Id, todoList.Id)),
+                    ct
+                )
+                .ConfigureAwait(false);
         }
 
         logger.LogTodoItemRemoved(todoList.Id, command.ItemId);
@@ -53,6 +66,6 @@ internal static partial class RemoveTodoItemHandlerLoggerDefinition
     public static partial void LogTodoItemRemoved(
         this ILogger logger,
         Guid todoListId,
-        long itemId
+        Guid itemId
     );
 }

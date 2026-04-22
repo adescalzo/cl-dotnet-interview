@@ -28,17 +28,22 @@ public static class PersistenceExtensions
         // Scan for all concrete repository implementations (one per aggregate root).
         // Scrutor picks up closed types implementing IRepositoryCommand<> / IRepositoryQuery<>
         // and registers them against their interfaces. Open-generic base classes are skipped.
-        services.Scan(scan => scan
-            .FromAssemblyOf<TodoListRepositoryCommand>()
-            .AddClasses(classes => classes.AssignableTo(typeof(IRepositoryCommand<>)))
-            .AsImplementedInterfaces()
-            .WithScopedLifetime());
+        services.Scan(scan =>
+            scan.FromAssemblyOf<TodoListRepositoryCommand>()
+                .AddClasses(classes => classes.AssignableTo(typeof(IRepositoryCommand<>)))
+                .AsImplementedInterfaces()
+                .WithScopedLifetime()
+        );
 
-        services.Scan(scan => scan
-            .FromAssemblyOf<TodoListRepositoryQuery>()
-            .AddClasses(classes => classes.AssignableTo(typeof(IRepositoryQuery<>)))
-            .AsImplementedInterfaces()
-            .WithScopedLifetime());
+        services.Scan(scan =>
+            scan.FromAssemblyOf<TodoListRepositoryQuery>()
+                .AddClasses(classes => classes.AssignableTo(typeof(IRepositoryQuery<>)))
+                .AsImplementedInterfaces()
+                .WithScopedLifetime()
+        );
+
+        services.AddScoped<ISyncEventRepository, SyncEventRepository>();
+        services.AddScoped<ISyncMappingRepository, SyncMappingRepository>();
 
         return services;
     }

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Data.Entities;
+using TodoApi.Infrastructure.Extensions;
 using TodoApi.Tests.Builders;
 using TodoApi.Tests.TestSupport;
 
@@ -40,7 +41,10 @@ public sealed class TodoListTests : AsyncLifetimeBase
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
-        var persisted = await Context.TodoList.AsNoTracking().SingleAsync(x => x.Id == list.Id).ConfigureAwait(false);
+        var persisted = await Context
+            .TodoList.AsNoTracking()
+            .SingleAsync(x => x.Id == list.Id)
+            .ConfigureAwait(false);
         persisted.Name.Should().Be("Chores");
         persisted.UpdatedAt.Should().Be(UtcNow);
         persisted.IsSynchronized.Should().BeFalse();
@@ -79,8 +83,8 @@ public sealed class TodoListTests : AsyncLifetimeBase
         Context.TodoList.Add(list);
         await SaveChangesAsync().ConfigureAwait(false);
 
-        list.AddItem("Milk", UtcNow);
-        list.AddItem("Eggs", UtcNow);
+        list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
+        list.AddItem(GuidV7.NewGuid(), "Eggs", 2, UtcNow, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -107,7 +111,7 @@ public sealed class TodoListTests : AsyncLifetimeBase
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
-        list.AddItem("Milk", UtcNow);
+        list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
@@ -121,8 +125,7 @@ public sealed class TodoListTests : AsyncLifetimeBase
         persistedItem.TodoListId.Should().Be(list.Id);
 
         var persistedList = await Context
-            .TodoList
-            .AsNoTracking()
+            .TodoList.AsNoTracking()
             .SingleAsync(x => x.Id == list.Id)
             .ConfigureAwait(false);
         persistedList.UpdatedAt.Should().Be(UtcNow);
@@ -136,7 +139,7 @@ public sealed class TodoListTests : AsyncLifetimeBase
         Context.TodoList.Add(list);
         await SaveChangesAsync().ConfigureAwait(false);
 
-        var item = list.AddItem("Milk", UtcNow);
+        var item = list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -144,12 +147,16 @@ public sealed class TodoListTests : AsyncLifetimeBase
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
-        var persistedItem =
-            await Context.TodoItem.AsNoTracking().SingleAsync(x => x.Id == item.Id).ConfigureAwait(false);
+        var persistedItem = await Context
+            .TodoItem.AsNoTracking()
+            .SingleAsync(x => x.Id == item.Id)
+            .ConfigureAwait(false);
         persistedItem.Name.Should().Be("Oat Milk");
 
-        var persistedList =
-            await Context.TodoList.AsNoTracking().SingleAsync(x => x.Id == list.Id).ConfigureAwait(false);
+        var persistedList = await Context
+            .TodoList.AsNoTracking()
+            .SingleAsync(x => x.Id == list.Id)
+            .ConfigureAwait(false);
         persistedList.UpdatedAt.Should().Be(UtcNow);
     }
 
@@ -162,13 +169,16 @@ public sealed class TodoListTests : AsyncLifetimeBase
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
-        var updated = list.UpdateItem(999, "Milk", UtcNow);
+        var updated = list.UpdateItem(Guid.NewGuid(), "Milk", UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
         updated.Should().BeNull();
 
-        var persisted = await Context.TodoList.AsNoTracking().SingleAsync(x => x.Id == list.Id).ConfigureAwait(false);
+        var persisted = await Context
+            .TodoList.AsNoTracking()
+            .SingleAsync(x => x.Id == list.Id)
+            .ConfigureAwait(false);
         persisted.Name.Should().Be("Groceries");
         persisted.UpdatedAt.Should().BeNull();
     }
@@ -181,7 +191,7 @@ public sealed class TodoListTests : AsyncLifetimeBase
         Context.TodoList.Add(list);
         await SaveChangesAsync().ConfigureAwait(false);
 
-        var item = list.AddItem("Milk", UtcNow);
+        var item = list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -196,8 +206,10 @@ public sealed class TodoListTests : AsyncLifetimeBase
             .ConfigureAwait(false);
         persistedItem.IsDeleted.Should().BeTrue();
 
-        var persistedList =
-            await Context.TodoList.AsNoTracking().SingleAsync(x => x.Id == list.Id).ConfigureAwait(false);
+        var persistedList = await Context
+            .TodoList.AsNoTracking()
+            .SingleAsync(x => x.Id == list.Id)
+            .ConfigureAwait(false);
         persistedList.UpdatedAt.Should().Be(UtcNow);
     }
 
@@ -210,13 +222,16 @@ public sealed class TodoListTests : AsyncLifetimeBase
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
-        var removed = list.RemoveItem(999, UtcNow);
+        var removed = list.RemoveItem(Guid.NewGuid(), UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
         removed.Should().BeFalse();
 
-        var persisted = await Context.TodoList.AsNoTracking().SingleAsync(x => x.Id == list.Id).ConfigureAwait(false);
+        var persisted = await Context
+            .TodoList.AsNoTracking()
+            .SingleAsync(x => x.Id == list.Id)
+            .ConfigureAwait(false);
         persisted.UpdatedAt.Should().BeNull();
     }
 }

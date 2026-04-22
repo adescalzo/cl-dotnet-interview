@@ -7,4 +7,4 @@ public sealed record GetTodoListResponse(
     IReadOnlyList<TodoListItemResponse> Items
 );
 
-public sealed record TodoListItemResponse(long Id, string Name, bool IsComplete);
+public sealed record TodoListItemResponse(Guid Id, string Name, bool IsComplete);
