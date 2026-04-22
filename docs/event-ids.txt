@@ -21,6 +21,9 @@ Range   Owner                                   EventName
 900     OutboundSyncJob                          OutboundSyncFailed
 1000    InboundSyncJob                           InboundSyncFailed
 
+1100    ExternalApiMock / TodoListsEndpoints     ItemInjected
+1101    ExternalApiMock / TodoListsEndpoints     ItemMutated
+
 Notes
 -----
 - Gaps (101-199, 201-299, ...) are reserved for future events in the same area.
@@ -29,3 +32,4 @@ Notes
 - Query handler IDs stay in the 200-series.
 - Command handler IDs use 100, 300-800 (100-series = TodoList, 500-series = TodoItem).
 - Job IDs start at 900.
+- ExternalApiMock IDs start at 1100.

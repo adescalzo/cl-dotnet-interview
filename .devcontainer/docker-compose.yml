@@ -13,3 +13,15 @@ services:
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=Password123
+  seq:
+    image: datalust/seq:latest
+    environment:
+      - ACCEPT_EULA=Y
+    ports:
+      - "5341:5341"
+      - "8080:80"
+    volumes:
+      - seq-data:/data
+
+volumes:
+  seq-data:

@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet csharpier . *)"
+      "Bash(dotnet csharpier . *)",
+      "Bash(dotnet new *)",
+      "Bash(curl -s http://localhost:3000/todolists)",
+      "Bash(curl -s -X POST http://localhost:3000/todolists -H 'Content-Type: application/json' -d '{\"name\":\"Test list\",\"items\":[{\"description\":\"Item 1\",\"completed\":false}]}')",
+      "Bash(curl -s -X PATCH http://localhost:3000/todolists/ext-list-1 -H 'Content-Type: application/json' -d '{\"name\":\"Updated groceries\"}')",
+      "Bash(curl -s -X PATCH http://localhost:3000/todolists/ext-list-1/todoitems/ext-item-2 -H 'Content-Type: application/json' -d '{\"description\":\"Whole milk\",\"completed\":true}')",
+      "Bash(dotnet sln *)",
+      "Bash(cp '/home/adescalzo/dev/me/challenge_cl/cl-external-api-mock/Endpoints/*.cs' /home/adescalzo/dev/me/challenge_cl/cl-dotnet-interview/ExternalApiMock/Endpoints/)",
+      "Bash(cp '/home/adescalzo/dev/me/challenge_cl/cl-external-api-mock/Models/*.cs' /home/adescalzo/dev/me/challenge_cl/cl-dotnet-interview/ExternalApiMock/Models/)",
+      "Bash(cp '/home/adescalzo/dev/me/challenge_cl/cl-external-api-mock/Services/*.cs' /home/adescalzo/dev/me/challenge_cl/cl-dotnet-interview/ExternalApiMock/Services/)",
+      "Bash(pkill -f \"dotnet.*ExternalApiMock\")",
+      "Bash(pkill -f \"ExternalApiMock.dll\")",
+      "Bash(fuser -k 3000/tcp)"
     ]
   }
 }

@@ -129,7 +129,33 @@ The same policy applies in the pull job: if a known external record has a newer 
 
 ---
 
-## 6. Out of Scope
+## 6. Assumptions
+
+### External API contract
+
+- **No pagination on GET /todolists** — the spec returns all lists and items in a single response. The pull job calls it exactly once per cycle and holds the result in memory for the duration of that run. If the external API adds pagination in the future, the pull job will need to be updated.
+- **`updated_at` as the only change signal** — the external API has no `version` or `ETag` field. We use `updated_at` to detect external changes. Two updates to the same record within the same second are indistinguishable — we accept this as a known limitation.
+- **`source_id` is write-once** — the external API's PATCH endpoints (`UpdateTodoListBody`, `UpdateTodoItemBody`) do not accept `source_id`. We never attempt to set it after creation.
+- **DELETE cascades items** — deleting a `TodoList` on the external API removes all its `TodoItem`s. We rely on this behavior and do not send individual item delete events when a list is deleted.
+- **404 on DELETE = success** — if the external record is already gone, we treat 404 as a successful idempotent delete and remove the local mapping.
+- **No individual item creation endpoint** — the external API only allows creating items as part of a `POST /todolists`. For items added to already-synced lists, we use a delete-and-recreate strategy (delete the external list, POST it again with all current items). This is the only viable approach given the current contract.
+
+### Sync behavior
+
+- **`sync_mappings` is the authority** — we determine whether a record is "ours" by looking it up in `sync_mappings`, not by inspecting `source_id`. External records with `source_id` set but no entry in our mappings are treated as new external records to import.
+- **Events processed in FIFO order** — sync events are consumed in `CreatedAt` ascending order. This preserves the sequence of local changes so the external system receives them in the order they happened.
+- **No inbound sync event** — records created locally during the pull job (inbound sync) do not produce `SyncEvent` entries. This prevents the push job from pushing externally-originated records back to the external API.
+- **Failed events retry indefinitely** — a `Failed` event remains in the table with `Status = Failed` and is retried on every subsequent push job run. There is no max attempt limit in this version (see Areas for Improvement).
+- **Push and pull jobs may overlap** — `[DisallowConcurrentExecution]` prevents each job from running in parallel with itself, but the push job and pull job may run concurrently. This is acceptable: they operate on different data sources (push reads `sync_events`; pull reads the external API).
+
+### Infrastructure
+
+- **Single instance** — the circuit breaker state and `[DisallowConcurrentExecution]` guard are per-process. In a multi-instance deployment, two instances could run the same job simultaneously. Acceptable for this challenge scope.
+- **SQL Server** — the devcontainer provisions SQL Server. The `InMemory` EF Core provider is used only in unit tests.
+
+---
+
+## 7. Out of Scope
 
 - **Versioning on local entities for concurrency control** — a `version` column was added to `TodoList` and `TodoItem` but optimistic locking (HTTP 409 on stale version) was not implemented. Documenting this as a known gap.
 - **API versioning** — no `/v1/` prefix or `Accept: application/vnd.*` versioning was added to the local API.
