@@ -1,0 +1,31 @@
+LoggerMessage EventId Registry
+==============================
+All EventIds used in [LoggerMessage] source-generated log methods.
+Add a new entry here before using a new EventId in code.
+
+Range   Owner                                   EventName
+------  --------------------------------------  ---------------------------
+1       LoggingMiddleware                        (Executing)
+2       LoggingMiddleware                        (Completed)
+3       LoggingMiddleware                        (Failed)
+
+100     CreateTodoListHandler                    TodoListCreated
+200     GetTodoListsHandler                      TodoListsFetched
+300     DeleteTodoListHandler                    TodoListDeleted
+400     UpdateTodoListHandler                    TodoListUpdated
+500     AddTodoItemHandler                       TodoItemAdded
+600     UpdateTodoItemHandler                    TodoItemUpdated
+700     CompleteTodoItemHandler                  TodoItemCompleted
+800     RemoveTodoItemHandler                    TodoItemRemoved
+
+900     OutboundSyncJob                          OutboundSyncFailed
+1000    InboundSyncJob                           InboundSyncFailed
+
+Notes
+-----
+- Gaps (101-199, 201-299, ...) are reserved for future events in the same area.
+- Never reuse a retired EventId.
+- Middleware IDs stay in the 1-9 range.
+- Query handler IDs stay in the 200-series.
+- Command handler IDs use 100, 300-800 (100-series = TodoList, 500-series = TodoItem).
+- Job IDs start at 900.
