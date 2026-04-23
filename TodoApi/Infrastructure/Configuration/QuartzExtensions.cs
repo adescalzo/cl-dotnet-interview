@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Quartz;
 using TodoApi.Application.Jobs;
 
@@ -5,12 +6,23 @@ namespace TodoApi.Infrastructure.Configuration;
 
 public static class QuartzExtensions
 {
-    public static IServiceCollection AddQuartzScheduler(this IServiceCollection services)
+    private const string OutboundSyncDefault = "0/30 * * * * ?";
+    private const string InboundSyncDefault = "0 0/5 * * * ?";
+
+    public static IServiceCollection AddQuartzScheduler(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services.AddQuartz(q =>
         {
-            q.AddJobAndTrigger<OutboundSyncJob>("OutboundSyncJob", "0/30 * * * * ?");
-            q.AddJobAndTrigger<InboundSyncJob>("InboundSyncJob", "0 0/5 * * * ?");
+            var outboundCron =
+                configuration["Jobs:OutboundSyncJob:CronExpression"] ?? OutboundSyncDefault;
+            var inboundCron =
+                configuration["Jobs:InboundSyncJob:CronExpression"] ?? InboundSyncDefault;
+
+            q.AddJobAndTrigger<OutboundSyncJob>("OutboundSyncJob", outboundCron);
+            q.AddJobAndTrigger<InboundSyncJob>("InboundSyncJob", inboundCron);
         });
 
         services.AddQuartzHostedService(opt => opt.WaitForJobsToComplete = true);

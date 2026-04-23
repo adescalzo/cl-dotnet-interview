@@ -41,7 +41,7 @@ try
     // Persistency and Infrastructure
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddPersistence(builder.Configuration);
-    builder.Services.AddQuartzScheduler();
+    builder.Services.AddQuartzScheduler(builder.Configuration);
 
     builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 

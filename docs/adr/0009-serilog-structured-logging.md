@@ -1,4 +1,4 @@
-# 0009 - Serilog for structured logging, with Console / File / Seq sinks
+# 0009 - Serilog for structured logging, with Console / File sinks
 
 - Status: accepted
 - Date: 2026-04-19
@@ -21,9 +21,7 @@ a devcontainer/CI where plain-text console output loses signal. We
 need:
 
 - Structured (JSON / key-value) log records, not interpolated strings.
-- Multiple sinks: developer console, a rolling file, and a queryable
-  dev-time backend (Seq) so the team can pivot on `traceId`, `code`,
-  `module`, etc.
+- Multiple sinks: developer console and a rolling file.
 - A pipeline that works with Wolverine's `OpenTelemetry` support so
   one configuration covers both CQRS middleware and request logs.
 
@@ -31,8 +29,7 @@ need:
 
 - Structured logs with a typed pipeline (enrichers, filters) — built
   in MEL does not give us this without heavy config.
-- Seq for dev-time ad-hoc querying; File for CI/run persistence;
-  Console for the developer loop.
+- File for CI/run persistence; Console for the developer loop.
 - The chosen library must play nicely with ASP.NET Core's logging
   abstraction (`ILogger<T>` stays the primary API).
 - Compatibility with Wolverine's OTel exporters — we do not want
@@ -40,10 +37,9 @@ need:
 
 ## Considered options
 
-- **Serilog** with `Serilog.AspNetCore` + Console / File / Seq sinks.
+- **Serilog** with `Serilog.AspNetCore` + Console / File sinks.
 - **NLog** with similar sink ecosystem.
-- **Built-in `Microsoft.Extensions.Logging`** + a custom JSON
-  formatter + a third-party Seq provider.
+- **Built-in `Microsoft.Extensions.Logging`** + a custom JSON formatter.
 - **OpenTelemetry-only** (logs routed purely through OTel exporters).
 
 ## Decision outcome
@@ -55,7 +51,6 @@ Chosen option: **Serilog**, installed via these packages:
 - `Serilog.Sinks.Console` — developer console output.
 - `Serilog.Sinks.File` — rolling file sink (`logs/todoapi-.log`,
   daily roll).
-- `Serilog.Sinks.Seq` — Seq sink for structured log search in dev.
 
 Conventions:
 
@@ -67,10 +62,6 @@ Conventions:
   (propagates ambient properties such as `TraceId`, `Module`,
   `UserId`), `WithMachineName`, `WithEnvironmentName`. Optional per
   sink.
-- The Seq sink is configured but the connection string defaults to
-  `http://localhost:5341` for the devcontainer. Failing writes to Seq
-  must not crash the app — Serilog's default behavior (silent
-  failure with an internal trace) is acceptable.
 - File sink rolls daily under `./logs/` with a 30-day retention cap.
 - `ProblemDetails.traceId` (ADR-0007) is the same id that appears in
   logs — both come from `Activity.Current?.Id`, so an operator can
@@ -84,15 +75,13 @@ Conventions:
 - Positive: one logging library across the app, Wolverine
   middleware, and the global exception handler.
 - Positive: structured output means `code`, `module`, and `traceId`
-  can be queried directly in Seq without regex over strings.
+  are queryable properties, not regex targets over flat strings.
 - Positive: configuration-driven — sinks can be added/removed per
   environment without touching code.
 - Positive: aligns with ADR-0007 (`traceId` appears both in the error
   body and the log record).
 - Negative: one more library in the dependency graph. Accepted;
   Serilog is mature and widely used.
-- Negative: Seq is an extra service to run in the devcontainer.
-  Acceptable; it is not a deploy dependency, only a dev tool.
 
 ## Links
 
@@ -101,4 +90,3 @@ Conventions:
 - Related: ADR-0007 (`traceId` correlation), ADR-0008 (Wolverine's
   OpenTelemetry hooks feed the same pipeline).
 - Serilog: <https://serilog.net>.
-- Seq: <https://datalust.co/seq>.

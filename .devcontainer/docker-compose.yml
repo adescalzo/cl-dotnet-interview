@@ -18,15 +18,4 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
-  seq:
-    image: datalust/seq:latest
-    environment:
-      - ACCEPT_EULA=Y
-    ports:
-      - "5341:5341"
-      - "8080:80"
-    volumes:
-      - seq-data:/data
 
-volumes:
-  seq-data:

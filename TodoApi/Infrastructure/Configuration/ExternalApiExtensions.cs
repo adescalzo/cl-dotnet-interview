@@ -24,13 +24,14 @@ public static class ExternalApiExtensions
         };
 
         var maxRetries = configuration.GetValue("ExternalApi:MaxRetries", defaultValue: 3);
+        var timeoutSeconds = configuration.GetValue("ExternalApi:TimeoutSeconds", defaultValue: 10);
 
         services
             .AddRefitClient<IExternalTodoApiClient>(refitSettings)
             .ConfigureHttpClient(c =>
             {
                 c.BaseAddress = new Uri(configuration["ExternalApi:BaseUrl"]!);
-                c.Timeout = TimeSpan.FromSeconds(20);
+                c.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
             })
             .AddPolicyHandler(_ => ResiliencePolicies.RetryPolicy(maxRetries))
             .AddPolicyHandler(ResiliencePolicies.CircuitBreakerPolicy());

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Application.Services;
-using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
 using TodoApi.Infrastructure.Hubs;
 using TodoApi.Infrastructure.Persistence;
@@ -13,6 +12,7 @@ public sealed class CompleteAllTodoItemsHandler(
     IBulkOperationTracker tracker,
     IHubContext<NotificationHub> hub,
     IClock clock,
+    IUnitOfWork unitOfWork,
     ILogger<CompleteAllTodoItemsHandler> logger
 )
 {
@@ -42,6 +42,12 @@ public sealed class CompleteAllTodoItemsHandler(
             await Task.Delay(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false);
 
             completedCount = todoList.CompleteAllItems(clock.UtcNow);
+
+            // Must commit before notifying the frontend — TransactionMiddleware.Finally
+            // runs after the handler returns, which is after the SignalR push below.
+            // Without this explicit save the re-fetch triggered by BulkCompleteFinished
+            // arrives before the DB has the completed state.
+            await unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

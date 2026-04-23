@@ -4,6 +4,131 @@
 
 ---
 
+## Sobre este proyecto y cómo fue construido
+
+Este challenge fue encarado como una oportunidad real de aprendizaje, no solo como un ejercicio para cumplir. El objetivo fue construir algo que tuviera sentido arquitectónico, que fuera mantenible, y que reflejara cómo trabajaría en un proyecto de producción.
+
+### Uso de IA (Claude)
+
+Desde el principio decidí aprovechar Claude como herramienta de desarrollo. El stack de .NET con Clean Architecture, DDD y CQRS es el área donde tengo más experiencia, así que la IA fue utilizada principalmente como un par de programación: para discutir decisiones de diseño, generar código siguiendo los patrones establecidos, y validar que las implementaciones fueran consistentes con la arquitectura.
+
+El flujo de trabajo fue deliberado: primero definir la arquitectura (ADRs), luego escribir requerimientos (REQs), y recién después pasar al código. Cada sesión con la IA arrancaba con contexto claro sobre qué se quería hacer y por qué. No fue "generame una app", fue "dado este diseño, implementá esto siguiendo estas restricciones".
+
+### El rol de los ADRs
+
+Los Architecture Decision Records fueron una parte central del proceso, no documentación post-hoc. Cada decisión relevante — desde la elección de Wolverine como dispatcher hasta la estrategia para manejar los IDs externos — fue discutida y documentada antes de escribir la primera línea de código. Esto permitió que la IA trabajara dentro de un marco bien definido y que las decisiones fueran trazables.
+
+Los ADRs están en `docs/adr/` (ADR-0001 a ADR-0016) y cubren desde la arquitectura modular hasta decisiones de resiliencia y testing.
+
+### El frontend
+
+El frontend es donde la situación fue diferente. React no es mi área fuerte — mi dominio principal es el backend .NET. En ese contexto, el desarrollo del frontend fue prácticamente íntegro con AI. No fue copy-paste sin entender: cada componente fue revisado, las decisiones de estado y las abstracciones fueron discutidas, y el resultado sigue las buenas prácticas de React 19 (hooks modernos como `use`, `useOptimistic`, `useActionState`, separación de responsabilidades, etc.).
+
+Lo que me importó fue que el resultado fuera correcto y mantenible, aunque el camino para llegar ahí haya sido más asistido que en el backend.
+
+### En resumen
+
+Aprovechar IA no fue un atajo para evitar pensar — fue una forma de producir más y mejor dentro del tiempo disponible. Las decisiones de arquitectura son propias, la documentación es deliberada, y el código sigue estándares que elegiría en un proyecto real.
+
+---
+
+## 0. Running the App
+
+Cada repositorio tiene su propio devcontainer. La forma recomendada es abrir cada uno en VS Code con Dev Containers y correr los procesos desde terminales dentro del container.
+
+### Ports expuestos
+
+| Servicio | Puerto |
+|---|---|
+| API (.NET) | `5083` |
+| ExternalApiMock | `3000` |
+| React frontend | `5173` |
+
+---
+
+### cl-dotnet-interview (API + ExternalApiMock)
+
+**Abrir el devcontainer:**
+
+1. Abrir VS Code en la carpeta `cl-dotnet-interview`
+2. `Ctrl+Shift+P` → `Dev Containers: Reopen in Container`
+3. Esperar que el container levante (instala .NET 8, restaura paquetes, compila)
+
+El devcontainer incluye SQL Server como servicio separado (`sqlserver`). Las migraciones se aplican automáticamente al iniciar la API.
+
+
+**Terminal 1 — ExternalApiMock:**
+
+```bash
+dotnet run --project ExternalApiMock
+```
+
+Corre en `http://localhost:3000`. Seed con 2 listas y 3 ítems. Datos in-memory: se resetean al reiniciar.
+
+**Terminal 2 — API:**
+
+```bash
+dotnet run --project TodoApi --launch-profile http
+```
+
+Corre en `http://localhost:5083`. Al arrancar aplica migraciones pendientes.
+
+---
+
+### cl-react-interview (Frontend)
+
+**Abrir el devcontainer:**
+
+1. Abrir VS Code en la carpeta `cl-react-interview`
+2. `Ctrl+Shift+P` → `Dev Containers: Reopen in Container`
+3. El `postCreateCommand` corre `npm install` automáticamente
+
+**Terminal 1 — Dev server:**
+
+```bash
+npm run dev
+```
+
+Corre en `http://localhost:5173`. Requiere que la API esté corriendo en `http://localhost:5083`.
+
+---
+
+### Resetear el DB
+
+**Opción A — solo borrar ítems inyectados por el mock** (mantiene datos propios):
+
+Desde una terminal en el devcontainer de `cl-dotnet-interview`, conectarse con `sqlcmd`:
+
+```bash
+/opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P Password123 -No \
+  -Q "DELETE FROM TodoItems WHERE Name LIKE '[INJECT]%'"
+```
+
+**Opción B — drop y recrear el DB completo:**
+
+```bash
+ASPNETCORE_ENVIRONMENT=Development dotnet ef database drop --project TodoApi --force
+ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project TodoApi
+```
+
+O simplemente reiniciar la API: aplica migraciones pendientes automáticamente.
+
+---
+
+### Notas de configuración
+
+| Setting | Valor |
+|---|---|
+| API URL | `http://localhost:5083` |
+| ExternalApiMock URL | `http://localhost:3000` |
+| React frontend | `http://localhost:5173` |
+| InboundSyncJob (dev) | cada 1 hora (`0 0 * * * ?` en `appsettings.Development.json`) |
+| OutboundSyncJob | cron en `appsettings.json` sección `Jobs` |
+
+El InboundSyncJob está limitado a 1 vez/hora en dev porque el mock inyecta ítems aleatorios con ~70% de probabilidad en cada llamada a `GET /todolists`, lo que acumula registros `[INJECT]` rápidamente si el job corre frecuente.
+
+---
+
 ## 1. Architecture Overview
 
 The synchronization module extends the Todo API with two background jobs that run on **Quartz.NET** (ADR-0012). The overall architecture follows the same Clean Architecture layers (ADR-0002) and CQRS pattern (ADR-0008) as the rest of the application.

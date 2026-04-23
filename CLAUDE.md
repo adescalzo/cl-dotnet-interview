@@ -234,7 +234,7 @@ See ADR-0007.
 ### Logging (Serilog)
 
 Logging goes through **Serilog** (`Serilog.AspNetCore` + Console /
-File / Seq sinks). See ADR-0009. Highlights:
+File sinks). See ADR-0009. Highlights:
 
 - `Program.cs` calls `UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration))`.
   All sink/enricher configuration lives in `appsettings*.json` under
@@ -244,9 +244,7 @@ File / Seq sinks). See ADR-0009. Highlights:
   is the same one rendered in `ProblemDetails.traceId` (ADR-0007),
   so logs and error responses pivot against each other.
 - Sinks: Console (dev loop), rolling File at `logs/todoapi-.log`
-  (30-day retention), Seq at `http://localhost:5341` in the
-  devcontainer. Seq is an optional dev tool — writes must fail
-  silently, never crash the app.
+  (30-day retention).
 - Use `ILogger<T>` in consumers. Do not reference `Log.Logger` or
   Serilog types outside the composition root.
 - Do **not** log request/response bodies by default. Adding
@@ -352,8 +350,7 @@ Why:
 - Enforces structured logging — message template parameters are strongly
   typed in the generated code, not mixed with the message string at runtime.
 - `EventId` provides a stable, queryable identifier across log sinks.
-- `EventName` appears as a structured property, useful for filtering in Seq
-  or any structured log sink.
+- `EventName` appears as a structured property, useful for filtering in any structured log sink.
 
 Rules:
 
@@ -454,7 +451,7 @@ these before proposing changes that touch any of these areas:
 | 0006 | Use `Result<T>` for expected failures                        | No exceptions for validation/not-found/conflict         |
 | 0007 | Use RFC 7807 `ProblemDetails` for HTTP error responses       | Single error format, mapped from `Error.Category`       |
 | 0008 | CQRS dispatched via Wolverine (supersedes ADR-0004)          | WolverineFx for CQRS + in-process messaging; no markers |
-| 0009 | Serilog for structured logging                               | `Serilog.AspNetCore` + Console / File / Seq sinks       |
+| 0009 | Serilog for structured logging                               | `Serilog.AspNetCore` + Console / File sinks             |
 | 0010 | Use UUIDv7 (Guid v7) for aggregate identifiers               | `GuidV7.NewGuid()` today; `Guid.CreateVersion7()` on net9+ |
 | 0011 | Unit testing conventions for handlers and validators         | Bogus + immutable Builders + `AsyncLifetimeBase` (EF InMemory) |
 | 0012 | Background scheduling with Quartz.NET, SignalR, EF Core      | Quartz jobs, `IServiceScopeFactory`, `[DisallowConcurrentExecution]` |
