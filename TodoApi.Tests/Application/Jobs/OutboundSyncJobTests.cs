@@ -3,12 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using TodoApi.Application.ExternalApi;
-using TodoApi.Application.ExternalApi.Dtos;
+using TodoApi.Application.ExternalApi.Payloads;
 using TodoApi.Application.Jobs;
 using TodoApi.Application.Jobs.Strategies;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Tests.Builders;
 using TodoApi.Tests.TestSupport;
 
 namespace TodoApi.Tests.Application.Jobs;
@@ -17,13 +16,11 @@ public sealed class OutboundSyncJobCoalesceTests : AsyncLifetimeBase
 {
     private IExternalTodoApiClient _client = null!;
     private SyncEventCommandRepository _syncEventRepo = null!;
-    private SyncMappingCommandRepository _syncMappingRepo = null!;
 
     protected override Task OnInitializeAsync()
     {
         _client = Substitute.For<IExternalTodoApiClient>();
         _syncEventRepo = new SyncEventCommandRepository(Context);
-        _syncMappingRepo = new SyncMappingCommandRepository(Context);
 
         return Task.CompletedTask;
     }
@@ -78,30 +75,24 @@ public sealed class OutboundSyncJobCoalesceTests : AsyncLifetimeBase
 
         await _syncEventRepo.AddAsync(older);
         await _syncEventRepo.AddAsync(newer);
-
-        var listMapping = new SyncMapping(
-            EntityType.TodoList,
-            listId,
-            "ext-list",
-            DateTime.UtcNow.AddHours(-1)
-        );
-        await _syncMappingRepo.AddAsync(listMapping);
-
         await SaveChangesAsync();
 
         var updatedAt = DateTime.UtcNow;
         _client
             .UpdateTodoListAsync(
                 Arg.Any<string>(),
+                Arg.Any<string>(),
                 Arg.Any<UpdateExternalTodoListRequest>(),
                 Arg.Any<CancellationToken>()
             )
-            .Returns(new ExternalTodoList("ext-list", "New", updatedAt, []));
+            .Returns(
+                new ExternalTodoList("ext-list", listId.ToString(), "New", updatedAt, updatedAt, [])
+            );
 
         var strategies = new ISyncEventStrategy[]
         {
-            new TodoListCreatedStrategy(_client, _syncMappingRepo),
-            new TodoListUpdatedStrategy(_client, _syncMappingRepo),
+            new TodoListCreatedStrategy(_client, NullLogger<TodoListCreatedStrategy>.Instance),
+            new TodoListUpdatedStrategy(_client, NullLogger<TodoListUpdatedStrategy>.Instance),
         };
 
         var dispatcher = new SyncEventDispatcher(strategies);
@@ -124,7 +115,8 @@ public sealed class OutboundSyncJobCoalesceTests : AsyncLifetimeBase
         await _client
             .Received(1)
             .UpdateTodoListAsync(
-                "ext-list",
+                Arg.Any<string>(),
+                listId.ToString(),
                 Arg.Is<UpdateExternalTodoListRequest>(r => r.Name == "New"),
                 Arg.Any<CancellationToken>()
             );
@@ -132,6 +124,7 @@ public sealed class OutboundSyncJobCoalesceTests : AsyncLifetimeBase
         await _client
             .DidNotReceive()
             .CreateTodoListAsync(
+                Arg.Any<string>(),
                 Arg.Any<CreateExternalTodoListRequest>(),
                 Arg.Any<CancellationToken>()
             );

@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Extensions;
 using TodoApi.Tests.Builders;
 using TodoApi.Tests.TestSupport;
 
@@ -22,7 +21,7 @@ public sealed class TodoItemTests : AsyncLifetimeBase
     public async Task AddItem_WhenSaved_ShouldPersistItemWithCorrectState()
     {
         // Act
-        _list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
+        _list.AddItem("Milk", 1, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
@@ -41,7 +40,7 @@ public sealed class TodoItemTests : AsyncLifetimeBase
     public async Task UpdateItem_WhenSaved_ShouldPersistRenamedItem()
     {
         // Arrange
-        var item = _list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
+        var item = _list.AddItem("Milk", 1, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -60,7 +59,7 @@ public sealed class TodoItemTests : AsyncLifetimeBase
     public async Task RemoveItem_WhenSaved_ShouldPersistDeletedFlagOnItem()
     {
         // Arrange
-        var item = _list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
+        var item = _list.AddItem("Milk", 1, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -95,5 +94,15 @@ public sealed class TodoItemTests : AsyncLifetimeBase
             .SingleAsync(x => x.Id == item.Id)
             .ConfigureAwait(false);
         persisted.IsDeleted.Should().BeTrue();
+    }
+
+    [Fact]
+    public void LinkExternal_WhenCalled_ShouldSetExternalId()
+    {
+        var item = new TodoItemBuilder().WithTodoListId(_list.Id).Build();
+
+        item.LinkExternal("ext-item-1");
+
+        item.ExternalId.Should().Be("ext-item-1");
     }
 }

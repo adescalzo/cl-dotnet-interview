@@ -4,13 +4,12 @@ using Refit;
 using TodoApi.Application.ExternalApi;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Jobs.Strategies;
 
 public sealed class TodoItemDeletedStrategy(
     IExternalTodoApiClient client,
-    ISyncMappingRepository mappings
+    ILogger<TodoItemDeletedStrategy> logger
 ) : ISyncEventStrategy
 {
     public bool CanHandle(SyncEvent syncEvent) =>
@@ -20,36 +19,46 @@ public sealed class TodoItemDeletedStrategy(
     {
         ArgumentNullException.ThrowIfNull(syncEvent);
 
-        var payload = JsonSerializer.Deserialize<TodoItemDeletedPayload>(syncEvent.Payload)!;
-        var listMapping = await mappings
-            .FindByLocalIdAsync(EntityType.TodoList, payload.TodoListId, ct)
-            .ConfigureAwait(false);
-
-        if (listMapping is null)
-        {
-            return;
-        }
-
-        var itemMapping = await mappings
-            .FindByLocalIdAsync(EntityType.TodoItem, payload.Id, ct)
-            .ConfigureAwait(false);
-
-        if (itemMapping is null)
-        {
-            return;
-        }
-
         try
         {
-            await client
-                .DeleteTodoItemAsync(listMapping.ExternalId, itemMapping.ExternalId, ct)
-                .ConfigureAwait(false);
-        }
-        catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-        {
-            _ = ex;
-        }
+            var payload = JsonSerializer.Deserialize<TodoItemDeletedPayload>(syncEvent.Payload)!;
 
-        mappings.Remove(itemMapping);
+            try
+            {
+                await client
+                    .DeleteTodoItemAsync(
+                        syncEvent.CorrelationId.ToString(),
+                        payload.TodoListId.ToString(),
+                        payload.Id.ToString(),
+                        ct
+                    )
+                    .ConfigureAwait(false);
+            }
+            catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                _ = ex;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogTodoItemDeletedStrategyFailed(syncEvent.Id, syncEvent.EntityId, ex);
+            throw;
+        }
     }
+}
+
+internal static partial class TodoItemDeletedStrategyLoggerDefinition
+{
+    [LoggerMessage(
+        EventId = 1600,
+        Level = LogLevel.Error,
+        EventName = "TodoItemDeletedStrategyFailed",
+        Message = "TodoItemDeleted strategy failed for SyncEventId: {SyncEventId}, EntityId: {EntityId}"
+    )]
+    public static partial void LogTodoItemDeletedStrategyFailed(
+        this ILogger logger,
+        Guid syncEventId,
+        Guid entityId,
+        Exception ex
+    );
 }

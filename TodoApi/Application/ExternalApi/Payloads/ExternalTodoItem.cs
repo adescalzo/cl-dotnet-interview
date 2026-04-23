@@ -1,9 +1,10 @@
-namespace TodoApi.Application.ExternalApi.Dtos;
+namespace TodoApi.Application.ExternalApi.Payloads;
 
 public sealed record ExternalTodoItem(
     string Id,
+    string? SourceId,
     string Description,
     bool Completed,
-    string TodoListId,
+    DateTime CreatedAt,
     DateTime UpdatedAt
 );

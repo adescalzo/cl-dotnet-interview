@@ -50,8 +50,8 @@ public sealed class DeleteTodoListHandlerTests : AsyncLifetimeBase
     [Fact]
     public async Task Handle_WhenTodoListHasItems_ShouldMarkItemsAsDeletedToo()
     {
-        var item = _seeded.AddItem(GuidV7.NewGuid(), "Buy milk", 1, UtcNow, UtcNow);
-        await SaveChangesAsync();
+        var item = _seeded.AddItem("Buy milk", 1, UtcNow);
+        await SaveChangesAsync().ConfigureAwait(false);
 
         var command = new DeleteTodoListCommand(_seeded.Id);
         await _handler.Handle(command, CancellationToken.None).ConfigureAwait(false);

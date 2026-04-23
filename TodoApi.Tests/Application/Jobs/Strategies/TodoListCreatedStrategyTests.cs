@@ -1,108 +1,101 @@
+using System.Text.Json;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using TodoApi.Application.ExternalApi;
-using TodoApi.Application.ExternalApi.Dtos;
+using TodoApi.Application.ExternalApi.Payloads;
 using TodoApi.Application.Jobs.Strategies;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Tests.TestSupport;
+using TodoApi.Infrastructure.Extensions;
 
 namespace TodoApi.Tests.Application.Jobs.Strategies;
 
-public sealed class TodoListCreatedStrategyTests : AsyncLifetimeBase
+public sealed class TodoListCreatedStrategyTests
 {
-    private SyncMappingCommandRepository _mappings = null!;
-    private IExternalTodoApiClient _client = null!;
-    private TodoListCreatedStrategy _strategy = null!;
+    private readonly IExternalTodoApiClient _client = Substitute.For<IExternalTodoApiClient>();
 
-    protected override Task OnInitializeAsync()
-    {
-        _mappings = new SyncMappingCommandRepository(Context);
-        _client = Substitute.For<IExternalTodoApiClient>();
-        _strategy = new TodoListCreatedStrategy(_client, _mappings);
-
-        return Task.CompletedTask;
-    }
+    private TodoListCreatedStrategy Sut() =>
+        new(_client, NullLogger<TodoListCreatedStrategy>.Instance);
 
     [Fact]
     public void CanHandle_WhenTodoListCreated_ShouldReturnTrue()
     {
-        var evt = new SyncEvent(EntityType.TodoList, Guid.NewGuid(), EventType.Created, "{}");
-        _strategy.CanHandle(evt).Should().BeTrue();
+        var evt = new SyncEvent(EntityType.TodoList, GuidV7.NewGuid(), EventType.Created, "{}");
+        Sut().CanHandle(evt).Should().BeTrue();
     }
 
     [Fact]
     public void CanHandle_WhenTodoListUpdated_ShouldReturnFalse()
     {
-        var evt = new SyncEvent(EntityType.TodoList, Guid.NewGuid(), EventType.Updated, "{}");
-        _strategy.CanHandle(evt).Should().BeFalse();
+        var evt = new SyncEvent(EntityType.TodoList, GuidV7.NewGuid(), EventType.Updated, "{}");
+        Sut().CanHandle(evt).Should().BeFalse();
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenNoMappingExists_ShouldCallApiAndCreateMapping()
+    public async Task ExecuteAsync_WhenCalled_ShouldPostPayloadToExternalApiWithCorrelationHeader()
     {
-        // Arrange
-        var listId = Guid.NewGuid();
-        var payload = $"{{\"Id\":\"{listId}\",\"Name\":\"Groceries\"}}";
-        var evt = new SyncEvent(EntityType.TodoList, listId, EventType.Created, payload);
+        var id = GuidV7.NewGuid();
+        var payload = new TodoListCreatedPayload(id, "Groceries");
+        var syncEvent = new SyncEvent(
+            EntityType.TodoList,
+            id,
+            EventType.Created,
+            JsonSerializer.Serialize(payload)
+        );
 
-        var externalUpdatedAt = DateTime.UtcNow;
         _client
             .CreateTodoListAsync(
+                Arg.Any<string>(),
                 Arg.Any<CreateExternalTodoListRequest>(),
                 Arg.Any<CancellationToken>()
             )
-            .Returns(new ExternalTodoList("ext-123", "Groceries", externalUpdatedAt, []));
+            .Returns(
+                new ExternalTodoList(
+                    "ext-1",
+                    id.ToString(),
+                    "Groceries",
+                    DateTime.UtcNow,
+                    DateTime.UtcNow,
+                    []
+                )
+            );
 
-        // Act
-        await _strategy.ExecuteAsync(evt, CancellationToken.None);
-        await SaveChangesAsync();
+        await Sut().ExecuteAsync(syncEvent, CancellationToken.None);
 
-        // Assert
         await _client
             .Received(1)
             .CreateTodoListAsync(
-                Arg.Is<CreateExternalTodoListRequest>(r => r.Name == "Groceries"),
+                syncEvent.CorrelationId.ToString(),
+                Arg.Is<CreateExternalTodoListRequest>(r =>
+                    r.SourceId == id.ToString() && r.Name == "Groceries"
+                ),
                 Arg.Any<CancellationToken>()
-            )
-            .ConfigureAwait(false);
-
-        var mapping = await Context
-            .SyncMapping.SingleAsync(m => m.LocalId == listId)
-            .ConfigureAwait(false);
-
-        mapping.ExternalId.Should().Be("ext-123");
-        mapping.EntityType.Should().Be(EntityType.TodoList);
+            );
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenMappingAlreadyExists_ShouldSkipApiCall()
+    public async Task ExecuteAsync_WhenExternalApiThrows_ShouldPropagate()
     {
-        // Arrange
-        var listId = Guid.NewGuid();
-        var existing = new SyncMapping(
+        var id = GuidV7.NewGuid();
+        var payload = new TodoListCreatedPayload(id, "x");
+        var syncEvent = new SyncEvent(
             EntityType.TodoList,
-            listId,
-            "ext-existing",
-            DateTime.UtcNow
+            id,
+            EventType.Created,
+            JsonSerializer.Serialize(payload)
         );
-        await _mappings.AddAsync(existing).ConfigureAwait(false);
-        await SaveChangesAsync().ConfigureAwait(false);
 
-        var payload = $"{{\"Id\":\"{listId}\",\"Name\":\"Groceries\"}}";
-        var evt = new SyncEvent(EntityType.TodoList, listId, EventType.Created, payload);
-
-        // Act
-        await _strategy.ExecuteAsync(evt, CancellationToken.None).ConfigureAwait(false);
-
-        // Assert
-        await _client
-            .DidNotReceive()
+        _client
             .CreateTodoListAsync(
+                Arg.Any<string>(),
                 Arg.Any<CreateExternalTodoListRequest>(),
                 Arg.Any<CancellationToken>()
             )
-            .ConfigureAwait(false);
+            .Returns<ExternalTodoList>(_ => throw new HttpRequestException("boom"));
+
+        var act = async () => await Sut().ExecuteAsync(syncEvent, CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
     }
 }

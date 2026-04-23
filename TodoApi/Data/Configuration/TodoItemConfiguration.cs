@@ -17,6 +17,8 @@ public class TodoItemConfiguration : IEntityTypeConfiguration<TodoItem>
         builder.Property(t => t.Order).IsRequired();
         builder.Property(t => t.CreatedAt).IsRequired().ValueGeneratedNever();
         builder.Property(t => t.CompletedAt).ValueGeneratedNever();
+        builder.Property(t => t.ExternalId).HasMaxLength(500);
+        builder.HasIndex(t => t.ExternalId).IsUnique().HasFilter("[ExternalId] IS NOT NULL");
         builder.HasQueryFilter(t => !t.IsDeleted);
     }
 }

@@ -1,6 +1,5 @@
 using Bogus;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Extensions;
 using TodoApi.Tests.TestSupport;
 
 namespace TodoApi.Tests.Builders;
@@ -19,8 +18,7 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
         _completedAt = completedAt;
     }
 
-    public TodoItemBuilder WithName(string name) =>
-        CloneWith(f => f.RuleFor(x => x.Name, name));
+    public TodoItemBuilder WithName(string name) => CloneWith(f => f.RuleFor(x => x.Name, name));
 
     public TodoItemBuilder WithIsComplete(bool isComplete, DateTime? completedAt = null) =>
         CloneWith(f => f.RuleFor(x => x.IsComplete, isComplete), completedAt);
@@ -28,8 +26,7 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
     public TodoItemBuilder WithTodoListId(Guid todoListId) =>
         CloneWith(f => f.RuleFor(x => x.TodoListId, todoListId));
 
-    public TodoItemBuilder WithOrder(int order) =>
-        CloneWith(f => f.RuleFor(x => x.Order, order));
+    public TodoItemBuilder WithOrder(int order) => CloneWith(f => f.RuleFor(x => x.Order, order));
 
     public TodoItemBuilder WithCreatedAt(DateTime createdAt) =>
         CloneWith(f => f.RuleFor(x => x.CreatedAt, createdAt));
@@ -37,13 +34,7 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
     public TodoItem Build()
     {
         var data = _faker.Generate();
-        var item = new TodoItem(
-            GuidV7.NewGuid(),
-            data.Name,
-            data.TodoListId,
-            data.Order,
-            data.CreatedAt
-        );
+        var item = new TodoItem(data.Name, data.TodoListId, data.Order, data.CreatedAt);
         if (data.IsComplete)
         {
             item.Complete(_completedAt ?? data.CreatedAt);

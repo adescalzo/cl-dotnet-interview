@@ -13,6 +13,8 @@ public class TodoListConfiguration : IEntityTypeConfiguration<TodoList>
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Name).IsRequired().HasMaxLength(200);
         builder.Property(t => t.CreatedAt).IsRequired().ValueGeneratedNever();
+        builder.Property(t => t.ExternalId).HasMaxLength(500);
+        builder.HasIndex(t => t.ExternalId).IsUnique().HasFilter("[ExternalId] IS NOT NULL");
 
         builder
             .HasMany(t => t.Items)

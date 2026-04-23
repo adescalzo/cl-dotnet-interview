@@ -1,15 +1,14 @@
 using System.Text.Json;
 using TodoApi.Application.ExternalApi;
-using TodoApi.Application.ExternalApi.Dtos;
+using TodoApi.Application.ExternalApi.Payloads;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Jobs.Strategies;
 
 public sealed class TodoListCreatedStrategy(
     IExternalTodoApiClient client,
-    ISyncMappingRepository mappings
+    ILogger<TodoListCreatedStrategy> logger
 ) : ISyncEventStrategy
 {
     public bool CanHandle(SyncEvent syncEvent) =>
@@ -17,26 +16,40 @@ public sealed class TodoListCreatedStrategy(
 
     public async Task ExecuteAsync(SyncEvent syncEvent, CancellationToken ct)
     {
-        var payload = JsonSerializer.Deserialize<TodoListCreatedPayload>(syncEvent.Payload)!;
+        ArgumentNullException.ThrowIfNull(syncEvent);
 
-        var existing = await mappings
-            .FindByLocalIdAsync(EntityType.TodoList, payload.Id, ct)
-            .ConfigureAwait(false);
-
-        if (existing is not null)
+        try
         {
-            return;
+            var payload = JsonSerializer.Deserialize<TodoListCreatedPayload>(syncEvent.Payload)!;
+
+            await client
+                .CreateTodoListAsync(
+                    syncEvent.CorrelationId.ToString(),
+                    new CreateExternalTodoListRequest(payload.Id.ToString(), payload.Name, []),
+                    ct
+                )
+                .ConfigureAwait(false);
         }
-
-        var result = await client
-            .CreateTodoListAsync(new CreateExternalTodoListRequest(payload.Name), ct)
-            .ConfigureAwait(false);
-
-        await mappings
-            .AddAsync(
-                new SyncMapping(EntityType.TodoList, payload.Id, result.Id, result.UpdatedAt),
-                ct
-            )
-            .ConfigureAwait(false);
+        catch (Exception ex)
+        {
+            logger.LogTodoListCreatedStrategyFailed(syncEvent.Id, syncEvent.EntityId, ex);
+            throw;
+        }
     }
+}
+
+internal static partial class TodoListCreatedStrategyLoggerDefinition
+{
+    [LoggerMessage(
+        EventId = 1100,
+        Level = LogLevel.Error,
+        EventName = "TodoListCreatedStrategyFailed",
+        Message = "TodoListCreated strategy failed for SyncEventId: {SyncEventId}, EntityId: {EntityId}"
+    )]
+    public static partial void LogTodoListCreatedStrategyFailed(
+        this ILogger logger,
+        Guid syncEventId,
+        Guid entityId,
+        Exception ex
+    );
 }

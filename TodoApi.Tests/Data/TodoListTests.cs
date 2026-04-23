@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Extensions;
 using TodoApi.Tests.Builders;
 using TodoApi.Tests.TestSupport;
 
@@ -83,8 +82,8 @@ public sealed class TodoListTests : AsyncLifetimeBase
         Context.TodoList.Add(list);
         await SaveChangesAsync().ConfigureAwait(false);
 
-        list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
-        list.AddItem(GuidV7.NewGuid(), "Eggs", 2, UtcNow, UtcNow);
+        list.AddItem("Milk", 1, UtcNow);
+        list.AddItem("Eggs", 2, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -111,7 +110,7 @@ public sealed class TodoListTests : AsyncLifetimeBase
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
-        list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
+        list.AddItem("Milk", 1, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Assert
@@ -139,7 +138,7 @@ public sealed class TodoListTests : AsyncLifetimeBase
         Context.TodoList.Add(list);
         await SaveChangesAsync().ConfigureAwait(false);
 
-        var item = list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
+        var item = list.AddItem("Milk", 1, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -191,7 +190,7 @@ public sealed class TodoListTests : AsyncLifetimeBase
         Context.TodoList.Add(list);
         await SaveChangesAsync().ConfigureAwait(false);
 
-        var item = list.AddItem(GuidV7.NewGuid(), "Milk", 1, UtcNow, UtcNow);
+        var item = list.AddItem("Milk", 1, UtcNow);
         await SaveChangesAsync().ConfigureAwait(false);
 
         // Act
@@ -233,5 +232,26 @@ public sealed class TodoListTests : AsyncLifetimeBase
             .SingleAsync(x => x.Id == list.Id)
             .ConfigureAwait(false);
         persisted.UpdatedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void LinkExternal_WhenCalled_ShouldSetExternalId()
+    {
+        var list = new TodoListBuilder().Build();
+
+        list.LinkExternal("ext-list-1");
+
+        list.ExternalId.Should().Be("ext-list-1");
+    }
+
+    [Fact]
+    public void LinkExternal_WhenAlreadyLinked_ShouldOverwrite()
+    {
+        var list = new TodoListBuilder().Build();
+        list.LinkExternal("ext-old");
+
+        list.LinkExternal("ext-new");
+
+        list.ExternalId.Should().Be("ext-new");
     }
 }

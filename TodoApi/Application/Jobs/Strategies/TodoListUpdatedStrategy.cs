@@ -1,15 +1,14 @@
 using System.Text.Json;
 using TodoApi.Application.ExternalApi;
-using TodoApi.Application.ExternalApi.Dtos;
+using TodoApi.Application.ExternalApi.Payloads;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Jobs.Strategies;
 
 public sealed class TodoListUpdatedStrategy(
     IExternalTodoApiClient client,
-    ISyncMappingRepository mappings
+    ILogger<TodoListUpdatedStrategy> logger
 ) : ISyncEventStrategy
 {
     public bool CanHandle(SyncEvent syncEvent) =>
@@ -19,24 +18,39 @@ public sealed class TodoListUpdatedStrategy(
     {
         ArgumentNullException.ThrowIfNull(syncEvent);
 
-        var payload = JsonSerializer.Deserialize<TodoListUpdatedPayload>(syncEvent.Payload)!;
-        var mapping = await mappings
-            .FindByLocalIdAsync(EntityType.TodoList, payload.Id, ct)
-            .ConfigureAwait(false);
-
-        if (mapping is null)
+        try
         {
-            return;
+            var payload = JsonSerializer.Deserialize<TodoListUpdatedPayload>(syncEvent.Payload)!;
+
+            await client
+                .UpdateTodoListAsync(
+                    syncEvent.CorrelationId.ToString(),
+                    payload.Id.ToString(),
+                    new UpdateExternalTodoListRequest(payload.Name),
+                    ct
+                )
+                .ConfigureAwait(false);
         }
-
-        var result = await client
-            .UpdateTodoListAsync(
-                mapping.ExternalId,
-                new UpdateExternalTodoListRequest(payload.Name),
-                ct
-            )
-            .ConfigureAwait(false);
-
-        mapping.UpdateSync(mapping.ExternalId, result.UpdatedAt);
+        catch (Exception ex)
+        {
+            logger.LogTodoListUpdatedStrategyFailed(syncEvent.Id, syncEvent.EntityId, ex);
+            throw;
+        }
     }
+}
+
+internal static partial class TodoListUpdatedStrategyLoggerDefinition
+{
+    [LoggerMessage(
+        EventId = 1200,
+        Level = LogLevel.Error,
+        EventName = "TodoListUpdatedStrategyFailed",
+        Message = "TodoListUpdated strategy failed for SyncEventId: {SyncEventId}, EntityId: {EntityId}"
+    )]
+    public static partial void LogTodoListUpdatedStrategyFailed(
+        this ILogger logger,
+        Guid syncEventId,
+        Guid entityId,
+        Exception ex
+    );
 }

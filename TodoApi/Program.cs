@@ -36,7 +36,7 @@ try
     builder.Services.AddProblemDetailsConfiguration();
 
     // Application services
-    builder.Services.AddApplication();
+    builder.Services.AddApplication(builder.Configuration);
 
     // Persistency and Infrastructure
     builder.Services.AddInfrastructure(builder.Configuration);

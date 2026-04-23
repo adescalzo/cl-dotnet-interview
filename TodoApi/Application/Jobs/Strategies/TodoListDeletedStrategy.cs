@@ -4,13 +4,12 @@ using Refit;
 using TodoApi.Application.ExternalApi;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Jobs.Strategies;
 
 public sealed class TodoListDeletedStrategy(
     IExternalTodoApiClient client,
-    ISyncMappingRepository mappings
+    ILogger<TodoListDeletedStrategy> logger
 ) : ISyncEventStrategy
 {
     public bool CanHandle(SyncEvent syncEvent) =>
@@ -20,26 +19,42 @@ public sealed class TodoListDeletedStrategy(
     {
         ArgumentNullException.ThrowIfNull(syncEvent);
 
-        var payload = JsonSerializer.Deserialize<TodoListDeletedPayload>(syncEvent.Payload)!;
-
-        var mapping = await mappings
-            .FindByLocalIdAsync(EntityType.TodoList, payload.Id, ct)
-            .ConfigureAwait(false);
-
-        if (mapping is null)
-        {
-            return;
-        }
-
         try
         {
-            await client.DeleteTodoListAsync(mapping.ExternalId, ct).ConfigureAwait(false);
+            var payload = JsonSerializer.Deserialize<TodoListDeletedPayload>(syncEvent.Payload)!;
+
+            await client
+                .DeleteTodoListAsync(
+                    syncEvent.CorrelationId.ToString(),
+                    payload.Id.ToString(),
+                    ct
+                )
+                .ConfigureAwait(false);
         }
         catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
             _ = ex;
         }
-
-        mappings.Remove(mapping);
+        catch (Exception ex)
+        {
+            logger.LogTodoListDeletedStrategyFailed(syncEvent.Id, syncEvent.EntityId, ex);
+            throw;
+        }
     }
+}
+
+internal static partial class TodoListDeletedStrategyLoggerDefinition
+{
+    [LoggerMessage(
+        EventId = 1300,
+        Level = LogLevel.Error,
+        EventName = "TodoListDeletedStrategyFailed",
+        Message = "TodoListDeleted strategy failed for SyncEventId: {SyncEventId}, EntityId: {EntityId}"
+    )]
+    public static partial void LogTodoListDeletedStrategyFailed(
+        this ILogger logger,
+        Guid syncEventId,
+        Guid entityId,
+        Exception ex
+    );
 }

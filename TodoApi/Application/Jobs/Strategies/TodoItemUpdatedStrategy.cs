@@ -1,15 +1,14 @@
 using System.Text.Json;
 using TodoApi.Application.ExternalApi;
-using TodoApi.Application.ExternalApi.Dtos;
+using TodoApi.Application.ExternalApi.Payloads;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Jobs.Strategies;
 
 public sealed class TodoItemUpdatedStrategy(
     IExternalTodoApiClient client,
-    ISyncMappingRepository mappings
+    ILogger<TodoItemUpdatedStrategy> logger
 ) : ISyncEventStrategy
 {
     public bool CanHandle(SyncEvent syncEvent) =>
@@ -19,34 +18,40 @@ public sealed class TodoItemUpdatedStrategy(
     {
         ArgumentNullException.ThrowIfNull(syncEvent);
 
-        var payload = JsonSerializer.Deserialize<TodoItemUpdatedPayload>(syncEvent.Payload)!;
-        var listMapping = await mappings
-            .FindByLocalIdAsync(EntityType.TodoList, payload.TodoListId, ct)
-            .ConfigureAwait(false);
-
-        if (listMapping is null)
+        try
         {
-            return;
+            var payload = JsonSerializer.Deserialize<TodoItemUpdatedPayload>(syncEvent.Payload)!;
+
+            await client
+                .UpdateTodoItemAsync(
+                    syncEvent.CorrelationId.ToString(),
+                    payload.TodoListId.ToString(),
+                    payload.Id.ToString(),
+                    new UpdateExternalTodoItemRequest(payload.Name, payload.IsComplete),
+                    ct
+                )
+                .ConfigureAwait(false);
         }
-
-        var itemMapping = await mappings
-            .FindByLocalIdAsync(EntityType.TodoItem, payload.Id, ct)
-            .ConfigureAwait(false);
-
-        if (itemMapping is null)
+        catch (Exception ex)
         {
-            return;
+            logger.LogTodoItemUpdatedStrategyFailed(syncEvent.Id, syncEvent.EntityId, ex);
+            throw;
         }
-
-        var result = await client
-            .UpdateTodoItemAsync(
-                listMapping.ExternalId,
-                itemMapping.ExternalId,
-                new UpdateExternalTodoItemRequest(payload.Name, payload.IsComplete),
-                ct
-            )
-            .ConfigureAwait(false);
-
-        itemMapping.UpdateSync(itemMapping.ExternalId, result.UpdatedAt);
     }
+}
+
+internal static partial class TodoItemUpdatedStrategyLoggerDefinition
+{
+    [LoggerMessage(
+        EventId = 1500,
+        Level = LogLevel.Error,
+        EventName = "TodoItemUpdatedStrategyFailed",
+        Message = "TodoItemUpdated strategy failed for SyncEventId: {SyncEventId}, EntityId: {EntityId}"
+    )]
+    public static partial void LogTodoItemUpdatedStrategyFailed(
+        this ILogger logger,
+        Guid syncEventId,
+        Guid entityId,
+        Exception ex
+    );
 }

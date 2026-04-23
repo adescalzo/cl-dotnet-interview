@@ -7,67 +7,75 @@ public static class TodoListsEndpoints
 {
     public static void Map(WebApplication app)
     {
-        app.MapGet("/todolists", (TodoStore store, ILogger<Program> logger) =>
-        {
-            var lists = store.All.Select(DeepCopy).ToList();
-            var rng = Random.Shared;
-
-            foreach (var list in lists)
+        app.MapGet(
+            "/todolists",
+            (TodoStore store, ILogger<Program> logger) =>
             {
-                if (rng.NextDouble() < 0.70)
+                var lists = store.All.Select(DeepCopy).ToList();
+                var rng = Random.Shared;
+
+                foreach (var list in lists)
                 {
-                    var item = new TodoItem(
-                        Guid.NewGuid().ToString(),
-                        null,
-                        $"[INJECT] Random item {rng.Next(1000)}",
-                        false,
-                        DateTime.UtcNow,
-                        DateTime.UtcNow
-                    );
-                    list.Items.Add(item);
-                    logger.LogInjected(item.Description, list.Name);
+                    if (rng.NextDouble() < 0.70)
+                    {
+                        var item = new TodoItem(
+                            Guid.NewGuid().ToString(),
+                            null,
+                            $"[INJECT] Random item {rng.Next(1000)}",
+                            false,
+                            DateTime.UtcNow,
+                            DateTime.UtcNow
+                        );
+                        list.Items.Add(item);
+                        logger.LogInjected(item.Description, list.Name);
+                    }
+
+                    if (list.Items.Count > 0 && rng.NextDouble() < 0.70)
+                    {
+                        var target = list.Items[rng.Next(list.Items.Count)];
+                        var original = target.Description;
+                        target.Description = $"[MUTATE] {original} (mutated)";
+                        target.UpdatedAt = DateTime.UtcNow;
+                        logger.LogMutated(original, list.Name);
+                    }
                 }
 
-                if (list.Items.Count > 0 && rng.NextDouble() < 0.70)
-                {
-                    var target = list.Items[rng.Next(list.Items.Count)];
-                    var original = target.Description;
-                    target.Description = $"[MUTATE] {original} (mutated)";
-                    target.UpdatedAt = DateTime.UtcNow;
-                    logger.LogMutated(original, list.Name);
-                }
+                return Results.Ok(lists);
             }
+        );
 
-            return Results.Ok(lists);
-        });
-
-        app.MapPost("/todolists", (TodoStore store, CreateTodoListBody body) =>
-        {
-            var now = DateTime.UtcNow;
-            var list = new TodoList(
-                Guid.NewGuid().ToString(),
-                body.SourceId,
-                body.Name ?? "Untitled",
-                now,
-                now,
-                []
-            );
-
-            foreach (var itemBody in body.Items ?? [])
+        app.MapPost(
+            "/todolists",
+            (TodoStore store, CreateTodoListBody body) =>
             {
-                list.Items.Add(new TodoItem(
+                var now = DateTime.UtcNow;
+                var list = new TodoList(
                     Guid.NewGuid().ToString(),
-                    itemBody.SourceId,
-                    itemBody.Description ?? string.Empty,
-                    itemBody.Completed ?? false,
+                    body.SourceId,
+                    body.Name ?? "Untitled",
                     now,
-                    now
-                ));
-            }
+                    now,
+                    []
+                );
 
-            store.Add(list);
-            return Results.Created($"/todolists/{list.Id}", list);
-        });
+                foreach (var itemBody in body.Items ?? [])
+                {
+                    list.Items.Add(
+                        new TodoItem(
+                            Guid.NewGuid().ToString(),
+                            itemBody.SourceId,
+                            itemBody.Description ?? string.Empty,
+                            itemBody.Completed ?? false,
+                            now,
+                            now
+                        )
+                    );
+                }
+
+                store.Add(list);
+                return Results.Created($"/todolists/{list.Id}", list);
+            }
+        );
 
         app.MapMethods(
             "/todolists/{todolistId}",
@@ -75,28 +83,74 @@ public static class TodoListsEndpoints
             (TodoStore store, string todolistId, UpdateTodoListBody body) =>
             {
                 var list = store.FindList(todolistId);
-                if (list is null) return Results.NotFound();
+                if (list is null)
+                    return Results.NotFound();
 
-                list.Name = body.Name ?? list.Name;
-                list.UpdatedAt = DateTime.UtcNow;
+                var now = DateTime.UtcNow;
+
+                if (body.Name is not null)
+                {
+                    list.Name = body.Name;
+                }
+
+                foreach (var itemBody in body.Items ?? [])
+                {
+                    if (
+                        itemBody.SourceId is not null
+                        && list.Items.Any(i => i.SourceId == itemBody.SourceId)
+                    )
+                    {
+                        continue;
+                    }
+
+                    list.Items.Add(
+                        new TodoItem(
+                            Guid.NewGuid().ToString(),
+                            itemBody.SourceId,
+                            itemBody.Description ?? string.Empty,
+                            itemBody.Completed ?? false,
+                            now,
+                            now
+                        )
+                    );
+                }
+
+                list.UpdatedAt = now;
 
                 return Results.Ok(list);
             }
         );
 
-        app.MapDelete("/todolists/{todolistId}", (TodoStore store, string todolistId) =>
-        {
-            var removed = store.RemoveList(todolistId);
-            return removed ? Results.NoContent() : Results.NotFound();
-        });
+        app.MapDelete(
+            "/todolists/{todolistId}",
+            (TodoStore store, string todolistId) =>
+            {
+                var removed = store.RemoveList(todolistId);
+                return removed ? Results.NoContent() : Results.NotFound();
+            }
+        );
     }
 
     private static TodoList DeepCopy(TodoList source)
     {
-        var items = source.Items
-            .Select(i => new TodoItem(i.Id, i.SourceId, i.Description, i.Completed, i.CreatedAt, i.UpdatedAt))
+        var items = source
+            .Items.Select(i => new TodoItem(
+                i.Id,
+                i.SourceId,
+                i.Description,
+                i.Completed,
+                i.CreatedAt,
+                i.UpdatedAt
+            ))
             .ToList();
-        return new TodoList(source.Id, source.SourceId, source.Name, source.CreatedAt, source.UpdatedAt, items);
+        return new TodoList(
+            source.Id,
+            source.SourceId,
+            source.Name,
+            source.CreatedAt,
+            source.UpdatedAt,
+            items
+        );
     }
 }
 

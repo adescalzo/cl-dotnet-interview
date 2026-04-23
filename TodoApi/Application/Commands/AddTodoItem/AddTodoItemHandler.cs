@@ -46,12 +46,12 @@ public sealed class AddTodoItemHandler(
             );
         }
 
-        var id = GuidV7.NewGuid();
-        var createdAt = clock.UtcNow;
-        var item = todoList.AddItem(id, command.Name, command.Order, createdAt, createdAt);
+        var item = todoList.AddItem(command.Name, command.Order, clock.UtcNow);
+
         var syncEvent = new TodoItemCreatedPayload(
             item.Id,
             todoList.Id,
+            todoList.Name,
             item.Name,
             item.IsComplete
         );

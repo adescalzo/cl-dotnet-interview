@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Quartz;
 using TodoApi.Application.ExternalApi;
-using TodoApi.Application.ExternalApi.Dtos;
-using TodoApi.Application.Sync;
+using TodoApi.Application.ExternalApi.Payloads;
 using TodoApi.Data;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
-using TodoApi.Infrastructure.Extensions;
 using TodoApi.Infrastructure.Hubs;
 using TodoApi.Infrastructure.Persistence;
+using TodoApi.Infrastructure.Settings;
 
 namespace TodoApi.Application.Jobs;
 
@@ -17,23 +17,28 @@ namespace TodoApi.Application.Jobs;
 public sealed class InboundSyncJob(
     IServiceScopeFactory scopeFactory,
     IHubContext<NotificationHub> hub,
+    IOptions<ProcessOptions> optionsAccessor,
     ILogger<InboundSyncJob> logger
 ) : IJob
 {
+    private readonly ProcessOptions _options = optionsAccessor.Value;
+
     public async Task Execute(IJobExecutionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         await using var scope = scopeFactory.CreateAsyncScope();
-
         var client = scope.ServiceProvider.GetRequiredService<IExternalTodoApiClient>();
-        var mappings = scope.ServiceProvider.GetRequiredService<ISyncMappingRepository>();
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
         var dbContext = scope.ServiceProvider.GetRequiredService<TodoContext>();
 
-        var externalLists = await client.GetAllAsync(context.CancellationToken).ConfigureAwait(false);
+        var externalLists = await client
+            .GetAllAsync(context.CancellationToken)
+            .ConfigureAwait(false);
         var synced = 0;
+        var batchSize = _options.BatchSizeInbound;
+        var sinceLastFlush = 0;
 
         foreach (var externalList in externalLists)
         {
@@ -42,18 +47,29 @@ public sealed class InboundSyncJob(
                 synced += await SyncListAsync(
                         externalList,
                         dbContext,
-                        mappings,
                         clock,
                         context.CancellationToken
                     )
                     .ConfigureAwait(false);
-
-                await uow.SaveChangesAsync(context.CancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 logger.LogInboundSyncFailed(ex, externalList.Id);
             }
+
+            sinceLastFlush++;
+            if (sinceLastFlush < batchSize)
+            {
+                continue;
+            }
+
+            await uow.SaveChangesAsync(context.CancellationToken).ConfigureAwait(false);
+            sinceLastFlush = 0;
+        }
+
+        if (sinceLastFlush > 0)
+        {
+            await uow.SaveChangesAsync(context.CancellationToken).ConfigureAwait(false);
         }
 
         if (synced == 0)
@@ -62,105 +78,108 @@ public sealed class InboundSyncJob(
         }
 
         await hub
-            .Clients.All.SendAsync("InboundSyncJob", new { Synced = synced }, context.CancellationToken)
+            .Clients.All.SendAsync(
+                "InboundSyncJob",
+                new { Synced = synced },
+                context.CancellationToken
+            )
             .ConfigureAwait(false);
     }
 
     private static async Task<int> SyncListAsync(
         ExternalTodoList externalList,
         TodoContext dbContext,
-        ISyncMappingRepository mappings,
         IClock clock,
         CancellationToken ct
     )
     {
-        var synced = 0;
-        var listMapping = await mappings
-            .FindByExternalIdAsync(EntityType.TodoList, externalList.Id, ct)
+        var localList = await ResolveLocalListAsync(externalList, dbContext, ct)
             .ConfigureAwait(false);
+        var synced = 0;
+        var now = clock.UtcNow;
 
-        TodoList localList;
-
-        if (listMapping is null)
+        if (localList is null)
         {
-            localList = new TodoList(externalList.Name, clock.UtcNow);
+            localList = new TodoList(externalList.Name, now);
+            localList.LinkExternal(externalList.Id);
             await dbContext.TodoList.AddAsync(localList, ct).ConfigureAwait(false);
-            await mappings
-                .AddAsync(
-                    new SyncMapping(
-                        EntityType.TodoList,
-                        localList.Id,
-                        externalList.Id,
-                        externalList.UpdatedAt
-                    ),
-                    ct
-                )
-                .ConfigureAwait(false);
             synced++;
         }
         else
         {
-            localList = await dbContext
-                .TodoList.Include(l => l.Items)
-                .FirstAsync(l => l.Id == listMapping.LocalId, ct)
-                .ConfigureAwait(false);
-
-            if (externalList.UpdatedAt > listMapping.LastSyncedAt)
+            if (localList.ExternalId is null)
             {
-                localList.Update(externalList.Name, clock.UtcNow);
-                listMapping.UpdateSync(externalList.Id, externalList.UpdatedAt);
+                localList.LinkExternal(externalList.Id);
+            }
+
+            if (!string.Equals(localList.Name, externalList.Name, StringComparison.Ordinal))
+            {
+                localList.Update(externalList.Name, now);
                 synced++;
             }
         }
 
-        foreach (var externalItem in externalList.TodoItems)
+        var order = localList.Items.Count;
+        foreach (var externalItem in externalList.Items)
         {
-            synced += await SyncItemAsync(externalItem, localList, dbContext, mappings, clock, ct)
-                .ConfigureAwait(false);
+            if (IsAlreadyLinked(localList, externalItem))
+            {
+                continue;
+            }
+
+            order++;
+            var item = localList.AddItem(externalItem.Description, order, now);
+            if (externalItem.Completed)
+            {
+                item.Complete(now);
+            }
+            item.LinkExternal(externalItem.Id);
+            synced++;
         }
 
         return synced;
     }
 
-    private static async Task<int> SyncItemAsync(
-        ExternalTodoItem externalItem,
-        TodoList localList,
+    private static async Task<TodoList?> ResolveLocalListAsync(
+        ExternalTodoList externalList,
         TodoContext dbContext,
-        ISyncMappingRepository mappings,
-        IClock clock,
         CancellationToken ct
     )
     {
-        var itemMapping = await mappings
-            .FindByExternalIdAsync(EntityType.TodoItem, externalItem.Id, ct)
-            .ConfigureAwait(false);
-
-        if (itemMapping is not null)
+        if (Guid.TryParse(externalList.SourceId, out var sourceLocalId))
         {
-            return 0;
+            var bySource = await dbContext
+                .TodoList.Include(l => l.Items)
+                .FirstOrDefaultAsync(l => l.Id == sourceLocalId, ct)
+                .ConfigureAwait(false);
+            if (bySource is not null)
+            {
+                return bySource;
+            }
         }
 
-        var now = clock.UtcNow;
-        var newItem = localList.AddItem(GuidV7.NewGuid(), externalItem.Description, 0, now, now);
-        if (externalItem.Completed)
+        return await dbContext
+            .TodoList.Include(l => l.Items)
+            .FirstOrDefaultAsync(l => l.ExternalId == externalList.Id, ct)
+            .ConfigureAwait(false);
+    }
+
+    private static bool IsAlreadyLinked(TodoList list, ExternalTodoItem externalItem)
+    {
+        if (list.Items.Any(i => i.ExternalId == externalItem.Id))
         {
-            newItem.Complete(now);
+            return true;
         }
 
-        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
-        await mappings
-            .AddAsync(
-                new SyncMapping(
-                    EntityType.TodoItem,
-                    newItem.Id,
-                    externalItem.Id,
-                    externalItem.UpdatedAt
-                ),
-                ct
-            )
-            .ConfigureAwait(false);
+        if (
+            Guid.TryParse(externalItem.SourceId, out var localId)
+            && list.Items.Any(i => i.Id == localId)
+        )
+        {
+            return true;
+        }
 
-        return 1;
+        return false;
     }
 }
 

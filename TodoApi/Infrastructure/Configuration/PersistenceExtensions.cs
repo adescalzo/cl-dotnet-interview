@@ -43,7 +43,6 @@ public static class PersistenceExtensions
         );
 
         services.AddScoped<ISyncEventRepository, SyncEventRepository>();
-        services.AddScoped<ISyncMappingRepository, SyncMappingRepository>();
 
         return services;
     }

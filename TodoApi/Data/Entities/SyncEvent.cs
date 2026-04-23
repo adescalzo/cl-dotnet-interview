@@ -23,6 +23,8 @@ public class SyncEvent
 
     public Guid Id { get; private set; } = GuidV7.NewGuid();
 
+    public Guid CorrelationId { get; private set; } = GuidV7.NewGuid();
+
     public EntityType EntityType { get; private set; }
 
     public Guid EntityId { get; private set; }
@@ -39,17 +41,17 @@ public class SyncEvent
 
     public string? Error { get; private set; }
 
-    public void MarkCompleted()
+    public void MarkCompleted(DateTime processedAt)
     {
         Status = SyncStatus.Completed;
-        ProcessedAt = DateTime.UtcNow;
+        ProcessedAt = processedAt;
     }
 
-    public void MarkFailed(string error)
+    public void MarkFailed(string error, DateTime processedAt)
     {
         Status = SyncStatus.Failed;
         Error = error;
-        ProcessedAt = DateTime.UtcNow;
+        ProcessedAt = processedAt;
     }
 
     public static SyncEvent TodoListCreated(TodoListCreatedPayload data)

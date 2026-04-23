@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using Quartz;
 using TodoApi.Application.Sync;
+using TodoApi.Infrastructure;
 using TodoApi.Infrastructure.Hubs;
 using TodoApi.Infrastructure.Persistence;
+using TodoApi.Infrastructure.Settings;
 
 namespace TodoApi.Application.Jobs;
 
@@ -10,25 +13,29 @@ namespace TodoApi.Application.Jobs;
 public sealed class OutboundSyncJob(
     IServiceScopeFactory scopeFactory,
     IHubContext<NotificationHub> hub,
+    IClock clock,
+    IOptions<ProcessOptions> optionsAccessor,
     ILogger<OutboundSyncJob> logger
 ) : IJob
 {
+    private readonly ProcessOptions _options = optionsAccessor.Value;
+
     public async Task Execute(IJobExecutionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        var batchSize = _options.BatchSizeOutbound;
         await using var scope = scopeFactory.CreateAsyncScope();
 
         var syncEventRepo = scope.ServiceProvider.GetRequiredService<ISyncEventRepository>();
         var dispatcher = scope.ServiceProvider.GetRequiredService<SyncEventDispatcher>();
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        var pending = await syncEventRepo
-            .GetPendingAsync(50, context.CancellationToken)
-            .ConfigureAwait(false);
+        var pending = await syncEventRepo.GetPendingAsync(50, context.CancellationToken).ConfigureAwait(false);
         var coalesced = Coalesce(pending);
         var processed = 0;
         var failed = 0;
+        var sinceLastFlush = 0;
 
         foreach (var evt in coalesced)
         {
@@ -37,19 +44,29 @@ public sealed class OutboundSyncJob(
                 await dispatcher
                     .DispatchAsync(evt, context.CancellationToken)
                     .ConfigureAwait(false);
-                evt.MarkCompleted();
+                evt.MarkCompleted(clock.UtcNow);
                 processed++;
             }
             catch (Exception ex)
             {
-                evt.MarkFailed(ex.Message);
+                evt.MarkFailed(ex.Message, clock.UtcNow);
                 failed++;
                 logger.LogOutboundSyncFailed(ex, evt.EntityType, evt.EventType, evt.EntityId);
             }
-            finally
+
+            sinceLastFlush++;
+            if (sinceLastFlush < batchSize)
             {
-                await uow.SaveChangesAsync(context.CancellationToken).ConfigureAwait(false);
+                continue;
             }
+
+            await uow.SaveChangesAsync(context.CancellationToken).ConfigureAwait(false);
+            sinceLastFlush = 0;
+        }
+
+        if (sinceLastFlush > 0)
+        {
+            await uow.SaveChangesAsync(context.CancellationToken).ConfigureAwait(false);
         }
 
         if (processed + failed > 0)

@@ -13,7 +13,9 @@
       "Bash(cp '/home/adescalzo/dev/me/challenge_cl/cl-external-api-mock/Services/*.cs' /home/adescalzo/dev/me/challenge_cl/cl-dotnet-interview/ExternalApiMock/Services/)",
       "Bash(pkill -f \"dotnet.*ExternalApiMock\")",
       "Bash(pkill -f \"ExternalApiMock.dll\")",
-      "Bash(fuser -k 3000/tcp)"
+      "Bash(fuser -k 3000/tcp)",
+      "Bash(git stash *)",
+      "Bash(xargs cat *)"
     ]
   }
 }

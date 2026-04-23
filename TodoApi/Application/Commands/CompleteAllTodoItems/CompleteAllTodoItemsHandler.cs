@@ -47,8 +47,12 @@ public sealed class CompleteAllTodoItemsHandler(
         {
             logger.LogBulkCompleteFailed(command.TodoListId, ex);
 
-            await hub.Clients.All
-                .SendAsync("BulkCompleteFailed", new { listId = command.TodoListId }, ct)
+            await hub
+                .Clients.All.SendAsync(
+                    "BulkCompleteFailed",
+                    new { listId = command.TodoListId },
+                    ct
+                )
                 .ConfigureAwait(false);
 
             return;
@@ -58,8 +62,8 @@ public sealed class CompleteAllTodoItemsHandler(
             tracker.Stop(command.TodoListId);
         }
 
-        await hub.Clients.All
-            .SendAsync(
+        await hub
+            .Clients.All.SendAsync(
                 "BulkCompleteFinished",
                 new { listId = command.TodoListId, completedCount },
                 ct

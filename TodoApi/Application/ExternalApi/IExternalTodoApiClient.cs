@@ -1,5 +1,5 @@
 using Refit;
-using TodoApi.Application.ExternalApi.Dtos;
+using TodoApi.Application.ExternalApi.Payloads;
 
 namespace TodoApi.Application.ExternalApi;
 
@@ -10,29 +10,29 @@ public interface IExternalTodoApiClient
 
     [Post("/todolists")]
     Task<ExternalTodoList> CreateTodoListAsync(
+        [Header("X-Correlation-Id")] string correlationId,
         [Body] CreateExternalTodoListRequest body,
         CancellationToken ct = default
     );
 
     [Patch("/todolists/{todolistId}")]
     Task<ExternalTodoList> UpdateTodoListAsync(
+        [Header("X-Correlation-Id")] string correlationId,
         string todolistId,
         [Body] UpdateExternalTodoListRequest body,
         CancellationToken ct = default
     );
 
     [Delete("/todolists/{todolistId}")]
-    Task DeleteTodoListAsync(string todolistId, CancellationToken ct = default);
-
-    [Post("/todolists/{todolistId}/todoitems")]
-    Task<ExternalTodoItem> CreateTodoItemAsync(
+    Task DeleteTodoListAsync(
+        [Header("X-Correlation-Id")] string correlationId,
         string todolistId,
-        [Body] CreateExternalTodoItemRequest body,
         CancellationToken ct = default
     );
 
     [Patch("/todolists/{todolistId}/todoitems/{todoitemId}")]
     Task<ExternalTodoItem> UpdateTodoItemAsync(
+        [Header("X-Correlation-Id")] string correlationId,
         string todolistId,
         string todoitemId,
         [Body] UpdateExternalTodoItemRequest body,
@@ -40,5 +40,10 @@ public interface IExternalTodoApiClient
     );
 
     [Delete("/todolists/{todolistId}/todoitems/{todoitemId}")]
-    Task DeleteTodoItemAsync(string todolistId, string todoitemId, CancellationToken ct = default);
+    Task DeleteTodoItemAsync(
+        [Header("X-Correlation-Id")] string correlationId,
+        string todolistId,
+        string todoitemId,
+        CancellationToken ct = default
+    );
 }

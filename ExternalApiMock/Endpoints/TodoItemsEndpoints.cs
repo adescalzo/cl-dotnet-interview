@@ -13,10 +13,14 @@ public static class TodoItemsEndpoints
             (TodoStore store, string todolistId, string todoitemId, UpdateTodoItemBody body) =>
             {
                 var list = store.FindList(todolistId);
-                if (list is null) return Results.NotFound();
+                if (list is null)
+                    return Results.NotFound();
 
-                var item = list.Items.FirstOrDefault(i => i.Id == todoitemId);
-                if (item is null) return Results.NotFound();
+                var item = list.Items.FirstOrDefault(i =>
+                    i.Id == todoitemId || i.SourceId == todoitemId
+                );
+                if (item is null)
+                    return Results.NotFound();
 
                 item.Description = body.Description ?? item.Description;
                 item.Completed = body.Completed ?? item.Completed;
@@ -32,9 +36,12 @@ public static class TodoItemsEndpoints
             (TodoStore store, string todolistId, string todoitemId) =>
             {
                 var list = store.FindList(todolistId);
-                if (list is null) return Results.NotFound();
+                if (list is null)
+                    return Results.NotFound();
 
-                var removed = list.Items.RemoveAll(i => i.Id == todoitemId);
+                var removed = list.Items.RemoveAll(i =>
+                    i.Id == todoitemId || i.SourceId == todoitemId
+                );
                 return removed > 0 ? Results.NoContent() : Results.NotFound();
             }
         );

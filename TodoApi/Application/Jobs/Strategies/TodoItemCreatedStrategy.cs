@@ -1,18 +1,13 @@
-using System.Net;
 using System.Text.Json;
-using Refit;
 using TodoApi.Application.ExternalApi;
-using TodoApi.Application.ExternalApi.Dtos;
+using TodoApi.Application.ExternalApi.Payloads;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Application.Jobs.Strategies;
 
-public sealed class TodoItemCreatedStrategy(
-    IExternalTodoApiClient client,
-    ISyncMappingRepository mappings
-) : ISyncEventStrategy
+public sealed class TodoItemCreatedStrategy(IExternalTodoApiClient client, ILogger<TodoItemCreatedStrategy> logger)
+    : ISyncEventStrategy
 {
     public bool CanHandle(SyncEvent syncEvent) =>
         syncEvent is { EntityType: EntityType.TodoItem, EventType: EventType.Created };
@@ -21,50 +16,39 @@ public sealed class TodoItemCreatedStrategy(
     {
         ArgumentNullException.ThrowIfNull(syncEvent);
 
-        var payload = JsonSerializer.Deserialize<TodoItemCreatedPayload>(syncEvent.Payload)!;
-
-        var listMapping = await mappings
-            .FindByLocalIdAsync(EntityType.TodoList, payload.TodoListId, ct)
-            .ConfigureAwait(false);
-
-        if (listMapping is null)
+        try
         {
-            return;
+            var payload = JsonSerializer.Deserialize<TodoItemCreatedPayload>(syncEvent.Payload)!;
+
+            var request = new UpdateExternalTodoListRequest(
+                Name: payload.TodoListName,
+                Items: [new CreateExternalTodoItemRequest(payload.Id.ToString(), payload.Name, payload.IsComplete)]
+            );
+
+            await client
+                .UpdateTodoListAsync(syncEvent.CorrelationId.ToString(), payload.TodoListId.ToString(), request, ct)
+                .ConfigureAwait(false);
         }
-
-        var itemMapping = await mappings
-            .FindByLocalIdAsync(EntityType.TodoItem, payload.Id, ct)
-            .ConfigureAwait(false);
-
-        if (itemMapping is not null)
+        catch (Exception ex)
         {
-            try
-            {
-                await client
-                    .DeleteTodoItemAsync(listMapping.ExternalId, itemMapping.ExternalId, ct)
-                    .ConfigureAwait(false);
-            }
-            catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                _ = ex;
-            }
-
-            mappings.Remove(itemMapping);
+            logger.LogTodoItemCreatedStrategyFailed(syncEvent.Id, syncEvent.EntityId, ex);
+            throw;
         }
-
-        var result = await client
-            .CreateTodoItemAsync(
-                listMapping.ExternalId,
-                new CreateExternalTodoItemRequest(payload.Name, payload.IsComplete),
-                ct
-            )
-            .ConfigureAwait(false);
-
-        await mappings
-            .AddAsync(
-                new SyncMapping(EntityType.TodoItem, payload.Id, result.Id, result.UpdatedAt),
-                ct
-            )
-            .ConfigureAwait(false);
     }
+}
+
+internal static partial class TodoItemCreatedStrategyLoggerDefinition
+{
+    [LoggerMessage(
+        EventId = 1400,
+        Level = LogLevel.Error,
+        EventName = "TodoItemCreatedStrategyFailed",
+        Message = "TodoItemCreated strategy failed for SyncEventId: {SyncEventId}, EntityId: {EntityId}"
+    )]
+    public static partial void LogTodoItemCreatedStrategyFailed(
+        this ILogger logger,
+        Guid syncEventId,
+        Guid entityId,
+        Exception ex
+    );
 }

@@ -1,6 +1,7 @@
 using System.Net;
+using System.Text.Json;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Refit;
@@ -8,82 +9,52 @@ using TodoApi.Application.ExternalApi;
 using TodoApi.Application.Jobs.Strategies;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
-using TodoApi.Tests.TestSupport;
+using TodoApi.Infrastructure.Extensions;
 
 namespace TodoApi.Tests.Application.Jobs.Strategies;
 
-public sealed class TodoListDeletedStrategyTests : AsyncLifetimeBase
+public sealed class TodoListDeletedStrategyTests
 {
-    private SyncMappingCommandRepository _mappings = null!;
-    private IExternalTodoApiClient _client = null!;
-    private TodoListDeletedStrategy _strategy = null!;
+    private readonly IExternalTodoApiClient _client = Substitute.For<IExternalTodoApiClient>();
 
-    protected override Task OnInitializeAsync()
-    {
-        _mappings = new SyncMappingCommandRepository(Context);
-        _client = Substitute.For<IExternalTodoApiClient>();
-        _strategy = new TodoListDeletedStrategy(_client, _mappings);
-
-        return Task.CompletedTask;
-    }
+    private TodoListDeletedStrategy Sut() =>
+        new(_client, NullLogger<TodoListDeletedStrategy>.Instance);
 
     [Fact]
-    public async Task ExecuteAsync_WhenMappingExists_ShouldDeleteExternalAndRemoveMapping()
+    public async Task ExecuteAsync_WhenCalled_ShouldCallDeleteWithPayloadIdAndCorrelationHeader()
     {
-        // Arrange
-        var listId = Guid.NewGuid();
-        var mapping = new SyncMapping(EntityType.TodoList, listId, "ext-123", DateTime.UtcNow);
-        await _mappings.AddAsync(mapping).ConfigureAwait(false);
-        await SaveChangesAsync().ConfigureAwait(false);
+        var id = GuidV7.NewGuid();
+        var syncEvent = new SyncEvent(
+            EntityType.TodoList,
+            id,
+            EventType.Deleted,
+            JsonSerializer.Serialize(new TodoListDeletedPayload(id))
+        );
 
-        var payload = $"{{\"Id\":\"{listId}\"}}";
-        var evt = new SyncEvent(EntityType.TodoList, listId, EventType.Deleted, payload);
+        await Sut().ExecuteAsync(syncEvent, CancellationToken.None);
 
-        // Act
-        await _strategy.ExecuteAsync(evt, CancellationToken.None).ConfigureAwait(false);
-        await SaveChangesAsync().ConfigureAwait(false);
-
-        // Assert
         await _client
             .Received(1)
-            .DeleteTodoListAsync("ext-123", Arg.Any<CancellationToken>())
-            .ConfigureAwait(false);
-
-        var mappingGone = await Context
-            .SyncMapping.AnyAsync(m => m.LocalId == listId)
-            .ConfigureAwait(false);
-        mappingGone.Should().BeFalse();
+            .DeleteTodoListAsync(
+                syncEvent.CorrelationId.ToString(),
+                id.ToString(),
+                Arg.Any<CancellationToken>()
+            );
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenMappingDoesNotExist_ShouldSkip()
+    public async Task ExecuteAsync_WhenExternalReturns404_ShouldSwallow()
     {
-        // Arrange
-        var listId = Guid.NewGuid();
-        var payload = $"{{\"Id\":\"{listId}\"}}";
-        var evt = new SyncEvent(EntityType.TodoList, listId, EventType.Deleted, payload);
-
-        // Act
-        await _strategy.ExecuteAsync(evt, CancellationToken.None).ConfigureAwait(false);
-
-        // Assert
-        await _client
-            .DidNotReceive()
-            .DeleteTodoListAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .ConfigureAwait(false);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WhenExternalReturns404_ShouldStillRemoveMapping()
-    {
-        // Arrange
-        var listId = Guid.NewGuid();
-        var mapping = new SyncMapping(EntityType.TodoList, listId, "ext-gone", DateTime.UtcNow);
-        await _mappings.AddAsync(mapping).ConfigureAwait(false);
-        await SaveChangesAsync().ConfigureAwait(false);
+        var id = GuidV7.NewGuid();
+        var syncEvent = new SyncEvent(
+            EntityType.TodoList,
+            id,
+            EventType.Deleted,
+            JsonSerializer.Serialize(new TodoListDeletedPayload(id))
+        );
 
         _client
-            .DeleteTodoListAsync("ext-gone", Arg.Any<CancellationToken>())
+            .DeleteTodoListAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(
                 await ApiException.Create(
                     new HttpRequestMessage(),
@@ -93,15 +64,8 @@ public sealed class TodoListDeletedStrategyTests : AsyncLifetimeBase
                 )
             );
 
-        var payload = $"{{\"Id\":\"{listId}\"}}";
-        var evt = new SyncEvent(EntityType.TodoList, listId, EventType.Deleted, payload);
+        var act = async () => await Sut().ExecuteAsync(syncEvent, CancellationToken.None);
 
-        // Act
-        await _strategy.ExecuteAsync(evt, CancellationToken.None).ConfigureAwait(false);
-        await SaveChangesAsync().ConfigureAwait(false);
-
-        // Assert
-        var mappingGone = await Context.SyncMapping.AnyAsync(m => m.LocalId == listId);
-        mappingGone.Should().BeFalse();
+        await act.Should().NotThrowAsync();
     }
 }

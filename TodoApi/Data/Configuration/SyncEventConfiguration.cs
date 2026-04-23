@@ -12,6 +12,7 @@ public class SyncEventConfiguration : IEntityTypeConfiguration<SyncEvent>
 
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.CorrelationId).IsRequired();
         builder.Property(s => s.EntityType).IsRequired();
         builder.Property(s => s.EntityId).IsRequired();
         builder.Property(s => s.EventType).IsRequired();
