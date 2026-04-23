@@ -20,7 +20,7 @@ public sealed class GetTodoListHandler(ITodoListRepositoryQuery repository)
                     list.Id,
                     list.Name,
                     list.CreatedAt,
-                    list.Items.Select(i => new TodoListItemResponse(i.Id, i.Name, i.IsComplete))
+                    list.Items.Select(i => new TodoListItemResponse(i.Id, i.Name, i.IsComplete, i.Order))
                         .ToList()
                 ),
                 ct

@@ -22,7 +22,7 @@ public sealed class GetTodoListsHandler(
                         list.Id,
                         list.Name,
                         list.CreatedAt,
-                        list.Items.Select(i => new TodoItemSummary(i.Id, i.Name, i.IsComplete))
+                        list.Items.Select(i => new TodoItemSummary(i.Id, i.Name, i.IsComplete, i.Order))
                             .ToList()
                     ),
                     ct

@@ -9,4 +9,4 @@ public sealed record TodoListSummary(
     IReadOnlyList<TodoItemSummary> Items
 );
 
-public sealed record TodoItemSummary(Guid Id, string Name, bool IsComplete);
+public sealed record TodoItemSummary(Guid Id, string Name, bool IsComplete, int Order);

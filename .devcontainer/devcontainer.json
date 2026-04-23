@@ -14,7 +14,11 @@
 	"workspaceFolder": "/app",
 
   // Features to add to the dev container. More info: https://containers.dev/features.
-  "features": {},
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "8.0"
+    }
+  },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [5083, 7027, 8080, 5341],
@@ -26,7 +30,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
         "Postman.postman-for-vscode"
       ]
     }
