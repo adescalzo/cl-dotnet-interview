@@ -57,16 +57,27 @@ The synchronization module extends the Todo API with two background jobs that ru
 
 ## 2. Design Decisions and Trade-offs
 
-### 2.1 No individual item creation endpoint on the external API
+### 2.1 Item creation via `PATCH /todolists/{id}` — the update endpoint also adds items
 
-The external API only provides `POST /todolists` — there is no `POST /todolists/{id}/todoitems`. Items can only be created during list creation.
+The external API contract has **no per-item creation endpoint**. The spec defines create only for lists (`POST /todolists`, optionally with `items[]` in the body). For items that are added to an **already-synced** list, we cannot POST — that would either error or create a duplicate list — and we cannot PATCH an item that does not yet exist externally.
 
-**Decision:** When a new `TodoItem` is added to an already-synced list, the push job:
-1. Deletes the existing external list (`DELETE /todolists/{externalId}`) — this cascades items.
-2. Recreates the list with all current items including the new one (`POST /todolists`).
-3. Updates all `SyncMapping` records to the new external IDs.
+**Decision:** When a `TodoItem` is added locally, `TodoItemCreatedStrategy`:
+1. Reads **only the sync-event payload** — `(localItemId, localListId, name, isComplete)`. It does **not** load the parent list or any sibling items from the DB.
+2. Calls `PATCH /todolists/{localListId}` with a body carrying `items: [ { source_id = localItemId, description, completed } ]` and `name: null`. The URL uses our local list id; the external API resolves it via `source_id`.
+3. Reads the returned list, finds the item whose `source_id` matches the one we sent, and saves (or updates) the item's `SyncMapping` using the external item `id` and `updated_at`.
 
-**Trade-off:** This is destructive and creates a brief gap where the external list does not exist. It is the only viable option given the current external API contract. A future improvement would require the external API to expose `POST /todolists/{id}/todoitems`.
+**Assumption — `PATCH /todolists/{id}` updates the list *and* adds new items:** the endpoint is treated as a partial update that (a) updates scalar fields of the list (`name`) when present, and (b) appends any items in `items[]` whose `source_id` is not already present on the external side. Items whose `source_id` already exists are ignored (no duplicates, no replace). This behavior is outside the strict reading of the OpenAPI spec, which types `UpdateTodoListBody` as `{ name }` only — we extend it with `items[]` and assume the real external API mirrors the mock (`ExternalApiMock/Endpoints/TodoListsEndpoints.cs`). If the real API rejects unknown fields, this assumption breaks and the design needs revisiting.
+
+**Design rule — strategies never read the DB.** Every sync strategy takes its inputs from the `SyncEvent` payload alone. If a strategy needs data that is not in the payload (for example, the parent list's name on an item event), the **command handler** that enqueues the event is responsible for capturing it at write-time and including it in the payload (`TodoItemCreatedPayload`, `TodoItemUpdatedPayload`, etc.). Consequences:
+- The sync module is decoupled from the aggregate's read shape — future schema changes don't ripple into strategies.
+- Every push is self-contained: the event captures exactly what was true at write-time, not what the DB happens to look like later.
+- No accidental "resubmit the whole list" side effects, and no conflation of "I added one item" with "here is the full list".
+
+**Item delete / item update** continue to use the per-item endpoints that *do* exist in the spec: `DELETE /todolists/{listId}/todoitems/{itemId}` and `PATCH /todolists/{listId}/todoitems/{itemId}`. Those require an item mapping, which item-create populates.
+
+**Edge case — list not yet synced:** if the `TodoItemCreated` event reaches the push job before the list's create event has been processed (or has failed), the PATCH returns 404. The event is marked `Failed` and retried on the next cycle once the list exists externally. FIFO event processing means this is rare but not impossible.
+
+**Trade-off:** We depend on a non-standard behavior of the PATCH endpoint. In exchange we get: no DB reads in the sync path, no "resubmit the whole list" bandwidth, and a clean separation where each event type maps to exactly one external call.
 
 ### 2.2 Event-based push instead of batch version comparison
 
@@ -171,7 +182,65 @@ The `IBulkOperationTracker` guard is injected directly into each item command ha
 
 ---
 
-## 8. Requirements and Working Style Notes
+## 8. CorrelationId on outbound sync requests
+
+Every `SyncEvent` carries a `CorrelationId` (`Guid`, assigned at
+construction via `GuidV7.NewGuid()`). The outbound strategies send it
+as the HTTP header `X-Correlation-Id` on every mutation call
+(`POST /todolists`, `PATCH /todolists/{id}`, `DELETE /todolists/{id}`,
+`PATCH /todolists/{id}/todoitems/{id}`, `DELETE /todolists/{id}/todoitems/{id}`).
+
+**Why:** the header is stable across replays of the same `SyncEvent`.
+`OutboundSyncJob` batches its `SaveChangesAsync` calls (see §9), so a
+crash between a successful external call and the batch flush leaves
+events marked `Pending` in the DB. On the next run they are
+re-dispatched — same `CorrelationId`, same payload — and an external
+API that honors the header can deduplicate. Without dedup, a
+mid-batch crash produces duplicate external rows.
+
+The external mock used in this repo does **not** honor the header —
+it creates a new row on every POST. The convention is defensive
+against production providers; in dev, a crash mid-batch can produce
+duplicates in the mock's in-memory store.
+
+The field is named `CorrelationId` locally for consistency with how
+it grew out of the design conversation. Semantically it behaves like
+the `Idempotency-Key` header popularized by Stripe; we send it as
+`X-Correlation-Id` rather than `Idempotency-Key` to match the local
+field name 1:1. If we need to integrate with a provider that
+requires `Idempotency-Key` specifically, it is a one-line change in
+the Refit interface — the local field name stays.
+
+---
+
+## 9. Batch-saving in OutboundSyncJob and InboundSyncJob
+
+Both jobs flush `SaveChangesAsync` in configurable batches rather than after every item.
+
+**OutboundSyncJob** flushes every `ProcessOptions.BatchSizeOutbound` processed events (default 10), plus a final flush for any remainder. The previous implementation flushed after every event — one DB round-trip per external API call.
+
+**InboundSyncJob** applies the same pattern: flushes every `ProcessOptions.BatchSizeInbound` external lists processed (default 10), plus a final flush for any remainder. The previous implementation flushed after every external list.
+
+**Trade-off:** if the process crashes after making external API
+calls but before the batch flush, those events remain `Pending` in
+the DB and will be re-dispatched on the next run. We accept this
+because:
+
+1. The external API is expected to dedupe on `X-Correlation-Id`
+   (see §8). Replays are therefore at-most-once from the API's
+   point of view.
+2. The mock external API used in dev does **not** dedupe — in dev a
+   crash mid-batch can produce duplicate external rows. This is an
+   acknowledged trade against I/O cost; not a correctness concern
+   when running against an idempotent-honoring production API.
+
+Both properties live in `TodoApi/Infrastructure/Settings/ProcessOptions.cs`
+and are bound in `ApplicationExtensions.AddApplication` from the
+`Process` section of `appsettings.json`.
+
+---
+
+## 10. Requirements and Working Style Notes
 
 Beyond the challenge brief, a small set of additional requirements was written prior to implementation to capture design decisions, constraints, and acceptance criteria. These live in `docs/req/` (REQ-001 through REQ-010) alongside `docs/EPIC.md`.
 
