@@ -8,21 +8,31 @@ namespace TodoApi.Tests.Builders;
 public sealed class TodoItemBuilder : IBuilder<TodoItem>
 {
     private readonly Faker<TodoItemData> _faker;
+    private readonly DateTime? _completedAt;
 
     public TodoItemBuilder()
-        : this(CreateDefault()) { }
+        : this(CreateDefault(), null) { }
 
-    private TodoItemBuilder(Faker<TodoItemData> faker) => _faker = faker;
+    private TodoItemBuilder(Faker<TodoItemData> faker, DateTime? completedAt)
+    {
+        _faker = faker;
+        _completedAt = completedAt;
+    }
 
-    public TodoItemBuilder WithName(string name) => CloneWith(f => f.RuleFor(x => x.Name, name));
+    public TodoItemBuilder WithName(string name) =>
+        CloneWith(f => f.RuleFor(x => x.Name, name));
 
-    public TodoItemBuilder WithIsComplete(bool isComplete) =>
-        CloneWith(f => f.RuleFor(x => x.IsComplete, isComplete));
+    public TodoItemBuilder WithIsComplete(bool isComplete, DateTime? completedAt = null) =>
+        CloneWith(f => f.RuleFor(x => x.IsComplete, isComplete), completedAt);
 
     public TodoItemBuilder WithTodoListId(Guid todoListId) =>
         CloneWith(f => f.RuleFor(x => x.TodoListId, todoListId));
 
-    public TodoItemBuilder WithOrder(int order) => CloneWith(f => f.RuleFor(x => x.Order, order));
+    public TodoItemBuilder WithOrder(int order) =>
+        CloneWith(f => f.RuleFor(x => x.Order, order));
+
+    public TodoItemBuilder WithCreatedAt(DateTime createdAt) =>
+        CloneWith(f => f.RuleFor(x => x.CreatedAt, createdAt));
 
     public TodoItem Build()
     {
@@ -32,11 +42,11 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
             data.Name,
             data.TodoListId,
             data.Order,
-            DateTime.UtcNow
+            data.CreatedAt
         );
         if (data.IsComplete)
         {
-            item.Complete();
+            item.Complete(_completedAt ?? data.CreatedAt);
         }
 
         return item;
@@ -45,11 +55,14 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
     public IEnumerable<TodoItem> BuildList(int count) =>
         Enumerable.Range(0, count).Select(_ => Build());
 
-    private TodoItemBuilder CloneWith(Action<Faker<TodoItemData>> configure)
+    private TodoItemBuilder CloneWith(
+        Action<Faker<TodoItemData>> configure,
+        DateTime? completedAt = null
+    )
     {
         var clone = _faker.Clone();
         configure(clone);
-        return new TodoItemBuilder(clone);
+        return new TodoItemBuilder(clone, completedAt ?? _completedAt);
     }
 
     private static Faker<TodoItemData> CreateDefault() =>
@@ -66,6 +79,8 @@ public sealed class TodoItemBuilder : IBuilder<TodoItem>
         public bool IsComplete { get; set; } = true;
 
         public Guid TodoListId { get; set; } = Guid.NewGuid();
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public int Order { get; set; } = 1;
     }

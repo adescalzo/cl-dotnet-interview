@@ -16,6 +16,7 @@ public class TodoItemConfiguration : IEntityTypeConfiguration<TodoItem>
         builder.Property(t => t.IsComplete).IsRequired();
         builder.Property(t => t.Order).IsRequired();
         builder.Property(t => t.CreatedAt).IsRequired().ValueGeneratedNever();
+        builder.Property(t => t.CompletedAt).ValueGeneratedNever();
         builder.HasQueryFilter(t => !t.IsDeleted);
     }
 }

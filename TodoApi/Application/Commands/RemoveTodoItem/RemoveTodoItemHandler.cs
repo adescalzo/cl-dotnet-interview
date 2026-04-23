@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TodoApi.Application.Services;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
@@ -9,6 +10,7 @@ namespace TodoApi.Application.Commands.RemoveTodoItem;
 public sealed class RemoveTodoItemHandler(
     ITodoListRepositoryCommand repository,
     ISyncEventRepository syncEvents,
+    IBulkOperationTracker tracker,
     IClock clock,
     ILogger<RemoveTodoItemHandler> logger
 )
@@ -16,6 +18,16 @@ public sealed class RemoveTodoItemHandler(
     public async Task<Result> Handle(RemoveTodoItemCommand command, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (tracker.IsRunning(command.TodoListId))
+        {
+            return Result.Failure(
+                ErrorResult.Conflict(
+                    "BulkOperationInProgress",
+                    "A bulk operation is currently running for this list."
+                )
+            );
+        }
 
         var todoList = await repository
             .GetQueryable(ct: ct)

@@ -9,7 +9,7 @@ namespace TodoApi.Application.Jobs;
 [DisallowConcurrentExecution]
 public sealed class OutboundSyncJob(
     IServiceScopeFactory scopeFactory,
-    IHubContext<NotificatoinHub> hub,
+    IHubContext<NotificationHub> hub,
     ILogger<OutboundSyncJob> logger
 ) : IJob
 {

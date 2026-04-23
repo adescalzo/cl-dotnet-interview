@@ -1,7 +1,9 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 using TodoApi.Application.Commands.AddTodoItem;
+using TodoApi.Application.Services;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
 using TodoApi.Tests.Builders;
@@ -23,6 +25,7 @@ public sealed class AddTodoItemHandlerTests : AsyncLifetimeBase
         _handler = new AddTodoItemHandler(
             new TodoListCommandRepository(Context),
             new SyncEventCommandRepository(Context),
+            Substitute.For<IBulkOperationTracker>(),
             Clock,
             NullLogger<AddTodoItemHandler>.Instance
         );

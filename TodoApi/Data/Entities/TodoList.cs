@@ -74,11 +74,23 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
             return null;
         }
 
-        item.Complete();
+        item.Complete(updatedAt);
         UpdatedAt = updatedAt;
         IsSynchronized = false;
 
         return item;
+    }
+
+    public int CompleteAllItems(DateTime now)
+    {
+        var count = 0;
+        foreach (var item in Items.Where(i => !i.IsComplete))
+        {
+            item.Complete(now);
+            count++;
+        }
+        
+        return count;
     }
 
     public bool RemoveItem(Guid itemId, DateTime updatedAt)

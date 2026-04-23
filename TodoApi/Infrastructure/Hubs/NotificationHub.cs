@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace TodoApi.Infrastructure.Hubs;
 
-public class NotificatoinHub : Hub
+public class NotificationHub : Hub
 {
     public async Task SendMessage(string user, string message)
     {

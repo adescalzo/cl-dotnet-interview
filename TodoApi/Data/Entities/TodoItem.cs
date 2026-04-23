@@ -30,6 +30,8 @@ public class TodoItem : ISynchronizable, IDeletable
 
     public DateTime CreatedAt { get; private set; }
 
+    public DateTime? CompletedAt { get; private set; }
+
     public Guid TodoListId { get; private set; }
 
     public TodoList TodoList { get; private set; } = null!;
@@ -42,9 +44,10 @@ public class TodoItem : ISynchronizable, IDeletable
 
     internal void Rename(string name) => Name = name;
 
-    internal void Complete()
+    internal void Complete(DateTime now)
     {
         IsComplete = true;
+        CompletedAt = now;
         IsSynchronized = false;
     }
 

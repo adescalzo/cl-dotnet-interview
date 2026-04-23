@@ -35,6 +35,9 @@ try
     // API Configuration
     builder.Services.AddProblemDetailsConfiguration();
 
+    // Application services
+    builder.Services.AddApplication();
+
     // Persistency and Infrastructure
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddPersistence(builder.Configuration);
@@ -78,10 +81,9 @@ try
     // CORS (must be before authentication)
     app.UseCorsConfiguration();
 
-    app.UseAuthorization();
     app.MapControllers();
 
-    app.MapHub<NotificatoinHub>("/notificationHub");
+    app.MapHub<NotificationHub>("/notificationHub");
 
     // Log the bound listener URLs once Kestrel has actually started.
     app.Lifetime.ApplicationStarted.Register(() =>
@@ -94,11 +96,10 @@ try
         if (addresses is { Count: > 0 })
         {
             Log.Information("Todo API listening on: {Addresses}", addresses);
+            return;
         }
-        else
-        {
-            Log.Information("Todo API started, but no server addresses were reported.");
-        }
+
+        Log.Information("Todo API started, but no server addresses were reported.");
     });
 
     await app.RunAsync().ConfigureAwait(false);

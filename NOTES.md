@@ -93,6 +93,10 @@ The same policy applies in the pull job: if a known external record has a newer 
 
 **Rationale:** Automatic conflict resolution without a deterministic policy (e.g. "last write wins") risks silent data loss. Fail-fast is the safest default.
 
+### 2.5 Bulk operation lock — handler-level guard vs. Wolverine middleware
+
+The `IBulkOperationTracker` guard is injected directly into each item command handler. This is the minimal implementation. The complete production approach would extract this into a Wolverine pipeline middleware activated via a `[GuardAgainstBulkOperation]` attribute on the command record — keeping handlers clean and making the policy declarative. Out of scope for this version.
+
 ---
 
 ## 3. Resilience Approach
@@ -163,3 +167,11 @@ The same policy applies in the pull job: if a known external record has a newer 
 - **Authentication on the external API** — the spec states no auth is required.
 - **Automatic conflict resolution** — manual resolution required after fail-fast.
 - **Multi-tenant / multi-external-system** — single external API instance only.
+
+---
+
+## 8. Requirements and Working Style Notes
+
+Beyond the challenge brief, a small set of additional requirements was written prior to implementation to capture design decisions, constraints, and acceptance criteria. These live in `docs/req/` (REQ-001 through REQ-010) alongside `docs/EPIC.md`.
+
+Not every piece of work went through a formal requirement — smaller or self-evident tasks were handled directly as they came up during development. The more complex features (sync module, bulk complete) were documented as full requirements and implementation prompts as an example of the working methodology: writing a REQ before touching code, keeping design decisions explicit, and generating scoped prompts for each implementation session.

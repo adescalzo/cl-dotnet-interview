@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TodoApi.Application.Services;
 using TodoApi.Application.Sync;
 using TodoApi.Data.Entities;
 using TodoApi.Infrastructure;
@@ -10,6 +11,7 @@ namespace TodoApi.Application.Commands.AddTodoItem;
 public sealed class AddTodoItemHandler(
     ITodoListRepositoryCommand repository,
     ISyncEventRepository syncEvents,
+    IBulkOperationTracker tracker,
     IClock clock,
     ILogger<AddTodoItemHandler> logger
 )
@@ -20,6 +22,16 @@ public sealed class AddTodoItemHandler(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (tracker.IsRunning(command.TodoListId))
+        {
+            return Result.Failure<AddTodoItemResponse>(
+                ErrorResult.Conflict(
+                    "BulkOperationInProgress",
+                    "A bulk operation is currently running for this list."
+                )
+            );
+        }
 
         var todoList = await repository
             .GetQueryable(ct: ct)

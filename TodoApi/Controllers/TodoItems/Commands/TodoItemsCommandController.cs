@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using TodoApi.Application.Commands.AddTodoItem;
+using TodoApi.Application.Commands.CompleteAllTodoItems;
 using TodoApi.Application.Commands.CompleteTodoItem;
 using TodoApi.Application.Commands.RemoveTodoItem;
 using TodoApi.Application.Commands.UpdateTodoItem;
@@ -59,5 +60,14 @@ public class TodoItemsCommandController(IMessageBus bus) : ControllerBase
         var result = await bus.InvokeAsync<Result>(command, ct).ConfigureAwait(false);
 
         return result.ToNoContent();
+    }
+
+    [HttpPut("complete-all")]
+    public async Task<IResult> CompleteAllTodoItems(Guid listId, CancellationToken ct)
+    {
+        var command = new CompleteAllTodoItemsCommand(listId);
+        await bus.PublishAsync(command).ConfigureAwait(false);
+
+        return Results.Accepted();
     }
 }

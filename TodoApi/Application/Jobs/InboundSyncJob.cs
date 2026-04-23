@@ -16,7 +16,7 @@ namespace TodoApi.Application.Jobs;
 [DisallowConcurrentExecution]
 public sealed class InboundSyncJob(
     IServiceScopeFactory scopeFactory,
-    IHubContext<NotificatoinHub> hub,
+    IHubContext<NotificationHub> hub,
     ILogger<InboundSyncJob> logger
 ) : IJob
 {
@@ -32,9 +32,7 @@ public sealed class InboundSyncJob(
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
         var dbContext = scope.ServiceProvider.GetRequiredService<TodoContext>();
 
-        var externalLists = await client
-            .GetAllAsync(context.CancellationToken)
-            .ConfigureAwait(false);
+        var externalLists = await client.GetAllAsync(context.CancellationToken).ConfigureAwait(false);
         var synced = 0;
 
         foreach (var externalList in externalLists)
@@ -58,16 +56,14 @@ public sealed class InboundSyncJob(
             }
         }
 
-        if (synced > 0)
+        if (synced == 0)
         {
-            await hub
-                .Clients.All.SendAsync(
-                    "InboundSyncJob",
-                    new { Synced = synced },
-                    context.CancellationToken
-                )
-                .ConfigureAwait(false);
+            return;
         }
+
+        await hub
+            .Clients.All.SendAsync("InboundSyncJob", new { Synced = synced }, context.CancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static async Task<int> SyncListAsync(
@@ -148,7 +144,7 @@ public sealed class InboundSyncJob(
         var newItem = localList.AddItem(GuidV7.NewGuid(), externalItem.Description, 0, now, now);
         if (externalItem.Completed)
         {
-            newItem.Complete();
+            newItem.Complete(now);
         }
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
