@@ -13,14 +13,6 @@ namespace TodoApi.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "CreatedAt",
-                table: "TodoList",
-                type: "datetime2",
-                nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-            );
-
             migrationBuilder.AddColumn<string>(
                 name: "ExternalId",
                 table: "TodoList",
@@ -29,16 +21,20 @@ namespace TodoApi.Migrations
                 nullable: true
             );
 
-            migrationBuilder
-                .AlterColumn<Guid>(
-                    name: "Id",
-                    table: "TodoItem",
-                    type: "uniqueidentifier",
-                    nullable: false,
-                    oldClrType: typeof(long),
-                    oldType: "bigint"
-                )
-                .OldAnnotation("SqlServer:Identity", "1, 1");
+            // SQL Server cannot alter an IDENTITY column in-place — drop PK, swap column type, recreate PK.
+            migrationBuilder.DropPrimaryKey(name: "PK_TodoItem", table: "TodoItem");
+
+            migrationBuilder.DropColumn(name: "Id", table: "TodoItem");
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "Id",
+                table: "TodoItem",
+                type: "uniqueidentifier",
+                nullable: false,
+                defaultValue: new Guid()
+            );
+
+            migrationBuilder.AddPrimaryKey(name: "PK_TodoItem", table: "TodoItem", column: "Id");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "CompletedAt",
@@ -130,8 +126,6 @@ namespace TodoApi.Migrations
 
             migrationBuilder.DropIndex(name: "IX_TodoItem_ExternalId", table: "TodoItem");
 
-            migrationBuilder.DropColumn(name: "CreatedAt", table: "TodoList");
-
             migrationBuilder.DropColumn(name: "ExternalId", table: "TodoList");
 
             migrationBuilder.DropColumn(name: "CompletedAt", table: "TodoItem");
@@ -142,16 +136,21 @@ namespace TodoApi.Migrations
 
             migrationBuilder.DropColumn(name: "Order", table: "TodoItem");
 
+            migrationBuilder.DropPrimaryKey(name: "PK_TodoItem", table: "TodoItem");
+
+            migrationBuilder.DropColumn(name: "Id", table: "TodoItem");
+
             migrationBuilder
-                .AlterColumn<long>(
+                .AddColumn<long>(
                     name: "Id",
                     table: "TodoItem",
                     type: "bigint",
                     nullable: false,
-                    oldClrType: typeof(Guid),
-                    oldType: "uniqueidentifier"
+                    defaultValue: 0L
                 )
                 .Annotation("SqlServer:Identity", "1, 1");
+
+            migrationBuilder.AddPrimaryKey(name: "PK_TodoItem", table: "TodoItem", column: "Id");
         }
     }
 }

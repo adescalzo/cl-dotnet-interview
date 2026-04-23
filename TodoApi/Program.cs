@@ -54,9 +54,6 @@ try
 
     builder.Services.AddSignalR();
 
-    builder.Logging.ClearProviders();
-    builder.Logging.AddConsole();
-
     builder
         .Services.AddHealthChecks()
         .AddDbContextCheck<TodoContext>(
