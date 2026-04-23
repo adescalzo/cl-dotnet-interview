@@ -11,8 +11,6 @@ public class TodoContext(DbContextOptions<TodoContext> options) : DbContext(opti
 
     public DbSet<SyncEvent> SyncEvent { get; set; }
 
-    public DbSet<SyncMapping> SyncMapping { get; set; }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);

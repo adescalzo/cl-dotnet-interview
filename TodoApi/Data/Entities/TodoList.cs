@@ -33,6 +33,8 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
 
     public bool IsDeleted { get; private set; }
 
+    public string? ExternalId { get; private set; }
+
     public void Update(string name, DateTime updatedAt)
     {
         Name = name;
@@ -40,12 +42,12 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
         IsSynchronized = false;
     }
 
-    public TodoItem AddItem(Guid id, string name, int order, DateTime createdAt, DateTime updatedAt)
+    public TodoItem AddItem(string name, int order, DateTime eventAt)
     {
-        var item = new TodoItem(id, name, Id, order, createdAt);
+        var item = new TodoItem(name, Id, order, eventAt);
 
         _items.Add(item);
-        UpdatedAt = updatedAt;
+        UpdatedAt = eventAt;
         IsSynchronized = false;
 
         return item;
@@ -89,7 +91,7 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
             item.Complete(now);
             count++;
         }
-        
+
         return count;
     }
 
@@ -124,5 +126,11 @@ public class TodoList : Entity, IAuditable, ISynchronizable, IDeletable
         {
             item.MarkAsDeleted(deletedAt);
         }
+    }
+
+    public void LinkExternal(string externalId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(externalId);
+        ExternalId = externalId;
     }
 }

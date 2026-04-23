@@ -1,3 +1,4 @@
+using TodoApi.Infrastructure.Extensions;
 using TodoApi.Infrastructure.Persistence;
 
 namespace TodoApi.Data.Entities;
@@ -9,9 +10,9 @@ public class TodoItem : ISynchronizable, IDeletable
         Name = string.Empty;
     }
 
-    internal TodoItem(Guid id, string name, Guid todoListId, int order, DateTime createdAt)
+    internal TodoItem(string name, Guid todoListId, int order, DateTime createdAt)
     {
-        Id = id;
+        Id = GuidV7.NewGuid();
         Name = name;
         TodoListId = todoListId;
         Order = order;
@@ -42,6 +43,8 @@ public class TodoItem : ISynchronizable, IDeletable
 
     public bool IsDeleted { get; private set; }
 
+    public string? ExternalId { get; private set; }
+
     internal void Rename(string name) => Name = name;
 
     internal void Complete(DateTime now)
@@ -61,5 +64,11 @@ public class TodoItem : ISynchronizable, IDeletable
     {
         IsDeleted = true;
         IsSynchronized = false;
+    }
+
+    public void LinkExternal(string externalId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(externalId);
+        ExternalId = externalId;
     }
 }
