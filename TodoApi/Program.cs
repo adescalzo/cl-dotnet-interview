@@ -69,6 +69,8 @@ try
 
     var app = builder.Build();
 
+    await app.MigrateDatabaseAsync().ConfigureAwait(false);
+
     // Health checks (mapped FIRST - must work even when other services fail)
     app.MapDetailedHealthChecks("/api/health");
 

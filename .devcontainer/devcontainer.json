@@ -17,7 +17,7 @@
   "features": {},
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [],
+  "forwardPorts": [5083, 7027, 8080, 5341],
 
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "dotnet restore && dotnet build",
@@ -26,6 +26,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "ms-dotnettools.csdevkit",
         "Postman.postman-for-vscode"
       ]
     }

@@ -156,6 +156,7 @@ The `IBulkOperationTracker` guard is injected directly into each item command ha
 
 - **Single instance** — the circuit breaker state and `[DisallowConcurrentExecution]` guard are per-process. In a multi-instance deployment, two instances could run the same job simultaneously. Acceptable for this challenge scope.
 - **SQL Server** — the devcontainer provisions SQL Server. The `InMemory` EF Core provider is used only in unit tests.
+- **Automatic migration on startup** — `db.Database.MigrateAsync()` runs at startup so the devcontainer works from scratch without manual `dotnet ef database update`. Acceptable for a challenge; production deployments would run migrations as a separate CI step.
 
 ---
 
